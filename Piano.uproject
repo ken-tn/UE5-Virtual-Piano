@@ -22,10 +22,6 @@
 			"Name": "MidiAsset",
 			"Enabled": true,
 			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/aff69119f95d405abbab38236e258c2e"
-		},
-		{
-			"Name": "EnhancedInput",
-			"Enabled": true
 		}
 	]
 }
