@@ -12,6 +12,8 @@ class PIANO_API ABase_Piano_Pawn : public APawn
 	GENERATED_BODY()
 
 public:
+	void OnKeyDown(FKey key);
+
 	// Sets default values for this pawn's properties
 	ABase_Piano_Pawn();
 

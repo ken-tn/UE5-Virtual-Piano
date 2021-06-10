@@ -3,6 +3,10 @@
 
 #include "Base_Piano_Pawn.h"
 
+void ABase_Piano_Pawn::OnKeyDown(FKey key) {
+	UE_LOG(LogTemp, Warning, TEXT("key: %s"), *key.GetDisplayName().ToString());
+}
+
 // Sets default values
 ABase_Piano_Pawn::ABase_Piano_Pawn()
 {
@@ -30,5 +34,5 @@ void ABase_Piano_Pawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+	PlayerInputComponent->BindAction("OnKeyDown", IE_Pressed, this, &ABase_Piano_Pawn::OnKeyDown);
 }
-
