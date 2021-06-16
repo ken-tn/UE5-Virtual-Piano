@@ -4,22 +4,10 @@
 #include "Base_Piano_Pawn.h"
 #include <fluidsynth.h>
 
-#if defined(WIN32)
-#include <windows.h>
-#define sleep(_t) Sleep(_t * 1000)
-#include <process.h>
-#define getpid _getpid
-#else
-#include <stdlib.h>
-#include <unistd.h>
-#endif
-
-int ABase_Piano_Pawn::LetterToNote(FKey Key)
+int ABase_Piano_Pawn::LetterToNote(const FString KeyName)
 {
-	const FString letterNoteMap = "1!2@34$5%6^78*9(0qQwWeErtTyYuiIoOpPasSdDfgGhHjJklLzZxcCvVbBnm";
-	const FString pressedLetter = Key.GetDisplayName().ToString().ToLower();
+	int note = letterNoteMap.Find(KeyName);
 
-	int note = letterNoteMap.Find(pressedLetter);
 	if (note == -1)
 	{
 		return note;
@@ -39,7 +27,7 @@ int ABase_Piano_Pawn::LetterToNote(FKey Key)
 
 		if (PlayerController != nullptr)
 		{
-			return note + Transposition + offset;
+			return note + Transposition + offset + 36; // +36 :thonk:
 		}
 		else
 		{
@@ -48,30 +36,103 @@ int ABase_Piano_Pawn::LetterToNote(FKey Key)
 	}
 }
 
-void ABase_Piano_Pawn::NoteOff(int note)
+void ABase_Piano_Pawn::SetGain(const float newGain)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Note Off: %d"), note);
-	fluid_synth_noteoff(synth, 0, note);
+	fluid_synth_set_gain(vpsynth, newGain);
 }
 
-void ABase_Piano_Pawn::OnKeyDown(FKey Key) {
+void ABase_Piano_Pawn::ToggleAuto()
+{
+	if (fluid_player_playing)
+	{
+		fluid_player_stop(fluid_player);
+	}
+	else
+	{
+		fluid_player_play(fluid_player);
+	}
+
+	fluid_player_playing = !fluid_player_playing;
+}
+
+void ABase_Piano_Pawn::OnKeyDown(FKey Key)
+{
+	const FString KeyName = *Key.GetDisplayName().ToString().ToLower();
+
+	UE_LOG(LogTemp, Warning, TEXT("Key: %s"), *KeyName);
+
+	if (KeyName == "up")
+	{
+		Transposition += 1;
+		UE_LOG(LogTemp, Warning, TEXT("Transposition: %d"), Transposition);
+
+		return;
+	}
+	else if (KeyName == "down")
+	{
+		Transposition -= 1;
+		UE_LOG(LogTemp, Warning, TEXT("Transposition: %d"), Transposition);
+
+		return;
+	}
+	else if (KeyName == "left")
+	{
+		Gain -= 0.01f;
+		SetGain(Gain);
+		UE_LOG(LogTemp, Warning, TEXT("Gain: %f"), Gain);
+
+		return;
+	}
+	else if (KeyName == "right")
+	{
+		Gain += 0.01f;
+		SetGain(Gain);
+		UE_LOG(LogTemp, Warning, TEXT("Gain: %f"), Gain);
+
+		return;
+	}
+	else if (KeyName == "delete")
+	{
+		ToggleAuto();
+	}
+	else if (KeyName == "space bar")
+	{
+		Sustain = !Sustain;
+		if (Sustain)
+		{
+			fluid_synth_all_notes_off(vpsynth, 1);
+		}
+	}
+
 	// Get note integer
-	int note = LetterToNote(Key);
-	UE_LOG(LogTemp, Warning, TEXT("%d"), note);
+	int note = LetterToNote(KeyName);
 	if (note == -1)
 	{
 		return;
 	}
 
-	/* Play a note */
-	fluid_synth_noteon(synth, 0, note, 80);
-	FTimerDelegate TimerDel;
-	FTimerHandle TimerHandle;
+	// Play note
+	fluid_synth_noteon(vpsynth, 1, note, 127);
+	UE_LOG(LogTemp, Warning, TEXT("%d"), note);
+}
 
-	//Binding the function with specific values
-	TimerDel.BindUFunction(this, FName("NoteOff"), note);
-	//Calling NoteOff after 1 seconds without looping
-	GetWorld()->GetTimerManager().SetTimer(TimerHandle, TimerDel, 1.f, false);
+void ABase_Piano_Pawn::OnKeyUp(FKey Key)
+{
+	const FString KeyName = *Key.GetDisplayName().ToString().ToLower();
+	if (KeyName == "space bar")
+	{
+		Sustain = !Sustain;
+	}
+
+	int note = LetterToNote(KeyName);
+	if (note == -1 || !Sustain)
+	{
+		return;
+	}
+
+	// Release note
+	fluid_synth_noteoff(vpsynth, 1, note);
+	UE_LOG(LogTemp, Warning, TEXT("Key Released: %d"), note);
 }
 
 // Sets default values
@@ -87,32 +148,37 @@ void ABase_Piano_Pawn::BeginPlay()
 	Super::BeginPlay();
 	
 	fluid_settings_t* settings;
-	fluid_audio_driver_t* adriver;
 	int sfont_id;
 
-	/* Create the settings. */
 	settings = new_fluid_settings();
-
-	/* Change the settings if necessary*/
-
-	/* Create the synthesizer. */
-	synth = new_fluid_synth(settings);
+	vpsynth = new_fluid_synth(settings);
+	midisynth = new_fluid_synth(settings);
 
 	/* Create the audio driver. The synthesizer starts playing as soon
 	   as the driver is created. */
-	adriver = new_fluid_audio_driver(settings, synth);
+	fluid_audio_driver_t* adriver = new_fluid_audio_driver(settings, vpsynth);
+	fluid_audio_driver_t* adriver2 = new_fluid_audio_driver(settings, midisynth);
 
 	/* Load a SoundFont and reset presets (so that new instruments
 	 * get used from the SoundFont) */
-	sfont_id = fluid_synth_sfload(synth, "D:/Documents/Unreal Projects/Piano/MasonHamlin-A-v7.sf2", 1);
+	sfont_id = fluid_synth_sfload(vpsynth, TCHAR_TO_ANSI(*FPaths::ProjectContentDir().Append("Soundfonts/MasonHamlin-A-v7.sf2")), 1);
+	fluid_synth_sfload(midisynth, TCHAR_TO_ANSI(*FPaths::ProjectContentDir().Append("Soundfonts/MasonHamlin-A-v7.sf2")), 1);
 
 	if (sfont_id == FLUID_FAILED)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Loading the SoundFont failed!"));
 	}
 
-	/* Initialize the random number generator */
-	srand(getpid());
+	fluid_synth_set_gain(vpsynth, Gain);
+	fluid_player = new_fluid_player(midisynth);
+	fluid_player_add(fluid_player, TCHAR_TO_ANSI(*FPaths::ProjectContentDir().Append("Midi/KOKORONASHI.mid")));
+}
+
+void ABase_Piano_Pawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	fluid_player_stop(fluid_player);
+	fluid_synth_all_notes_off(vpsynth, 1);
+	fluid_synth_all_sounds_off(vpsynth, 1);
 }
 
 // Called every frame
@@ -127,5 +193,6 @@ void ABase_Piano_Pawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	PlayerInputComponent->BindAction("OnKeyDown", IE_Pressed, this, &ABase_Piano_Pawn::OnKeyDown);
+	PlayerInputComponent->BindAction("PianoKeyboardDown", IE_Pressed, this, &ABase_Piano_Pawn::OnKeyDown);
+	PlayerInputComponent->BindAction("PianoKeyboardUp", IE_Released, this, &ABase_Piano_Pawn::OnKeyUp);
 }

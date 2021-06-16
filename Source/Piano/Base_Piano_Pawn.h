@@ -13,16 +13,28 @@ class PIANO_API ABase_Piano_Pawn : public APawn
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere)
+	const FString letterNoteMap = "1!2@34$5%6^78*9(0qQwWeErtTyYuiIoOpPasSdDfgGhHjJklLzZxcCvVbBnm";
+	fluid_synth_t* vpsynth;
+	fluid_synth_t* midisynth;
+	fluid_player_t* fluid_player;
+	bool fluid_player_playing = false;
+
+	void ToggleAuto();
+	void OnKeyDown(FKey key);
+	void OnKeyUp(FKey key);
+	int LetterToNote(const FString KeyName);
+
+	UPROPERTY(VisibleAnywhere)
+		bool Sustain = false;
+
+	UPROPERTY(VisibleAnywhere)
+		float Gain = 0.1f;
+
+	UPROPERTY(VisibleAnywhere)
 		int Transposition = 0;
 
-	int LetterToNote(FKey Key);
-	void OnKeyDown(FKey key);
-
-	fluid_synth_t* synth;
-
-	UFUNCTION()
-	void NoteOff(int note);
+	UFUNCTION(BlueprintCallable)
+		void SetGain(float NewGain);
 
 	// Sets default values for this pawn's properties
 	ABase_Piano_Pawn();
@@ -30,6 +42,9 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+
+	// Called when game ends or destroyed
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:	
 	// Called every frame
