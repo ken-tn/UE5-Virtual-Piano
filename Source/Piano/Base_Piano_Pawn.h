@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <fluidsynth.h>
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "Base_Piano_Pawn.generated.h"
@@ -12,7 +13,16 @@ class PIANO_API ABase_Piano_Pawn : public APawn
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(EditAnywhere)
+		int Transposition = 0;
+
+	int LetterToNote(FKey Key);
 	void OnKeyDown(FKey key);
+
+	fluid_synth_t* synth;
+
+	UFUNCTION()
+	void NoteOff(int note);
 
 	// Sets default values for this pawn's properties
 	ABase_Piano_Pawn();
