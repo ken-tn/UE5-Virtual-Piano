@@ -161,8 +161,9 @@ void ABase_Piano_Pawn::BeginPlay()
 
 	/* Load a SoundFont and reset presets (so that new instruments
 	 * get used from the SoundFont) */
-	sfont_id = fluid_synth_sfload(vpsynth, TCHAR_TO_ANSI(*FPaths::ProjectContentDir().Append("Soundfonts/MasonHamlin-A-v7.sf2")), 1);
-	fluid_synth_sfload(midisynth, TCHAR_TO_ANSI(*FPaths::ProjectContentDir().Append("Soundfonts/MasonHamlin-A-v7.sf2")), 1);
+	const ANSICHAR* FontPath = TCHAR_TO_ANSI(*FPaths::ProjectContentDir().Append("Soundfonts/" + FontArray[PianoFont.GetValue()]));
+	sfont_id = fluid_synth_sfload(vpsynth, FontPath, 1);
+	fluid_synth_sfload(midisynth, FontPath, 1);
 
 	if (sfont_id == FLUID_FAILED)
 	{

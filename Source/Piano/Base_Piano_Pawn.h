@@ -7,6 +7,12 @@
 #include "GameFramework/Pawn.h"
 #include "Base_Piano_Pawn.generated.h"
 
+UENUM()
+enum ESoundFont {
+	MasonHamlin		UMETA(DisplayName = "MasonHamlin A v7"),
+	Arachno			UMETA(DisplayName = "Arachno SoundFont - Version 1.0"),
+};
+
 UCLASS()
 class PIANO_API ABase_Piano_Pawn : public APawn
 {
@@ -18,19 +24,27 @@ public:
 	fluid_synth_t* midisynth;
 	fluid_player_t* fluid_player;
 	bool fluid_player_playing = false;
+	TArray<FString> FontArray = {
+		"MasonHamlin-A-v7.sf2",
+		"Arachno SoundFont - Version 1.0.sf2"
+	};
 
 	void ToggleAuto();
 	void OnKeyDown(FKey key);
 	void OnKeyUp(FKey key);
 	int LetterToNote(const FString KeyName);
 
-	UPROPERTY(VisibleAnywhere)
+	/** The type of object the interactable is */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Piano")
+		TEnumAsByte<ESoundFont> PianoFont;
+
+	UPROPERTY(VisibleAnywhere, Category = "Piano")
 		bool Sustain = false;
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, Category = "Piano")
 		float Gain = 0.1f;
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, Category = "Piano")
 		int Transposition = 0;
 
 	UFUNCTION(BlueprintCallable)
