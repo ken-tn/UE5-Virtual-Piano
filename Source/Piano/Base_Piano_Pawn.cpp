@@ -142,6 +142,23 @@ ABase_Piano_Pawn::ABase_Piano_Pawn()
 	PrimaryActorTick.bCanEverTick = true;
 }
 
+void ABase_Piano_Pawn::PrintAllInstruments(fluid_synth_t* synth, int sfont_id)
+{
+	fluid_preset_t* preset;
+
+	fluid_sfont_t* sfont = fluid_synth_get_sfont_by_id(synth, sfont_id);
+	int offset = fluid_synth_get_bank_offset(synth, sfont_id);
+	fluid_sfont_iteration_start(sfont);
+
+	while ((preset = fluid_sfont_iteration_next(sfont)) != NULL)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%03d-%03d %s\n"),
+			fluid_preset_get_banknum(preset) + offset,
+			fluid_preset_get_num(preset),
+			*FString(fluid_preset_get_name(preset)));
+	}
+}
+
 // Called when the game starts or when spawned
 void ABase_Piano_Pawn::BeginPlay()
 {
@@ -154,13 +171,11 @@ void ABase_Piano_Pawn::BeginPlay()
 	vpsynth = new_fluid_synth(settings);
 	midisynth = new_fluid_synth(settings);
 
-	/* Create the audio driver. The synthesizer starts playing as soon
-	   as the driver is created. */
+	// Create the audio driver. The synthesizer starts playing as soon as the driver is created.
 	fluid_audio_driver_t* adriver = new_fluid_audio_driver(settings, vpsynth);
 	fluid_audio_driver_t* adriver2 = new_fluid_audio_driver(settings, midisynth);
 
-	/* Load a SoundFont and reset presets (so that new instruments
-	 * get used from the SoundFont) */
+	// Load a SoundFont and reset presets (so that new instruments get used from the SoundFont)
 	const ANSICHAR* FontPath = TCHAR_TO_ANSI(*FPaths::ProjectContentDir().Append("Soundfonts/" + FontArray[PianoFont.GetValue()]));
 	sfont_id = fluid_synth_sfload(vpsynth, FontPath, 1);
 	fluid_synth_sfload(midisynth, FontPath, 1);
@@ -171,8 +186,13 @@ void ABase_Piano_Pawn::BeginPlay()
 	}
 
 	fluid_synth_set_gain(vpsynth, Gain);
+
+	// Create auto player
 	fluid_player = new_fluid_player(midisynth);
 	fluid_player_add(fluid_player, TCHAR_TO_ANSI(*FPaths::ProjectContentDir().Append("Midi/KOKORONASHI.mid")));
+
+	// Print all instruments
+	PrintAllInstruments(vpsynth, sfont_id);
 }
 
 void ABase_Piano_Pawn::EndPlay(const EEndPlayReason::Type EndPlayReason)

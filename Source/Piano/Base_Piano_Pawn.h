@@ -32,6 +32,7 @@ public:
 	void ToggleAuto();
 	void OnKeyDown(FKey key);
 	void OnKeyUp(FKey key);
+	void PrintAllInstruments(fluid_synth_t* synth, int sfont_id);
 	int LetterToNote(const FString KeyName);
 
 	/** The type of object the interactable is */
