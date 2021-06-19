@@ -320,8 +320,6 @@ ABase_Piano_Pawn::ABase_Piano_Pawn()
 
 	FFileManagerGeneric::Get().FindFiles(Fonts, *FPaths::ProjectContentDir().Append("SoundFont/"));
 	FFileManagerGeneric::Get().FindFiles(Midis, *FPaths::ProjectContentDir().Append("Midi/"));
-
-	Initialize();
 }
 
 void ABase_Piano_Pawn::OnEndPlay()
@@ -340,6 +338,8 @@ void ABase_Piano_Pawn::OnEndPlay()
 void ABase_Piano_Pawn::BeginPlay()
 {
 	Super::BeginPlay();
+
+	Initialize();
 }
 
 void ABase_Piano_Pawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
