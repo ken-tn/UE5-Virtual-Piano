@@ -114,18 +114,38 @@ void ABase_Piano_Pawn::InstrumentIncrement(int Increment)
 
 void ABase_Piano_Pawn::SoundFontIncrement(int Increment)
 {
-	const int FontArrayLength = FontArray.Num();
 	Channel += Increment;
-	if (Channel > FontArrayLength || Channel < 1)
+	if (Channel > Fonts.Num() || Channel < 1)
 	{
 		Channel -= Increment;
 		return;
 	}
-	const FString fontFileName = *FontArray[Channel - 1];
+	const FString fontFileName = *Fonts[Channel - 1];
 
 	FontChanged.Broadcast(fontFileName, Channel);
 	UE_LOG(LogTemp, Warning, TEXT("Sound Font: %s"), *fontFileName);
 	InstrumentIncrement(0);
+}
+
+void ABase_Piano_Pawn::MidiIncrement(int Increment)
+{
+	MidiIndex += Increment;
+	if (MidiIndex > Midis.Num() || MidiIndex < 0)
+	{
+		MidiIndex -= Increment;
+		return;
+	}
+
+	delete_fluid_player(fluid_player);
+	// Create auto player
+	const FString midiFileName = Midis[MidiIndex];
+	fluid_player = new_fluid_player(midisynth);
+	fluid_player_add(fluid_player, TCHAR_TO_ANSI(*FPaths::ProjectContentDir().Append("Midi/" + midiFileName)));
+	if (fluid_player_playing)
+	{
+		fluid_player_play(fluid_player);
+	}
+	UE_LOG(LogTemp, Warning, TEXT("Midi track: %s"), *midiFileName);
 }
 
 void ABase_Piano_Pawn::OnKeyDown(FKey Key)
@@ -133,7 +153,7 @@ void ABase_Piano_Pawn::OnKeyDown(FKey Key)
 	const FString KeyName = *Key.GetDisplayName().ToString().ToLower();
 
 	// print key
-	//UE_LOG(LogTemp, Warning, TEXT("Key: %s"), *KeyName);
+	UE_LOG(LogTemp, Warning, TEXT("Key: %s"), *KeyName);
 
 	/*
 	* pointers are scary
@@ -181,6 +201,14 @@ void ABase_Piano_Pawn::OnKeyDown(FKey Key)
 	else if (KeyName == "left bracket")
 	{
 		SoundFontIncrement(-1);
+	}
+	else if (KeyName == "num *")
+	{
+		MidiIncrement(1);
+	}
+	else if (KeyName == "num -")
+	{
+		MidiIncrement(-1);
 	}
 	else if (KeyName == "delete")
 	{
@@ -234,7 +262,8 @@ ABase_Piano_Pawn::ABase_Piano_Pawn()
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	FFileManagerGeneric::Get().FindFiles(FontArray, *FPaths::ProjectContentDir().Append("Soundfonts/"));
+	FFileManagerGeneric::Get().FindFiles(Fonts, *FPaths::ProjectContentDir().Append("SoundFont/"));
+	FFileManagerGeneric::Get().FindFiles(Midis, *FPaths::ProjectContentDir().Append("Midi/"));
 }
 
 void ABase_Piano_Pawn::PrintAllInstruments(fluid_synth_t* synth, int sfont_id)
@@ -267,9 +296,9 @@ void ABase_Piano_Pawn::Initialize()
 	fluid_audio_driver_t* adriver2 = new_fluid_audio_driver(settings, midisynth);
 
 	// Load a SoundFont and reset presets (so that new instruments get used from the SoundFont)
-	for (auto& fontFileName : FontArray)
+	for (auto& fontFileName : Fonts)
 	{
-		const ANSICHAR* FontPath = TCHAR_TO_ANSI(*FPaths::ProjectContentDir().Append("Soundfonts/" + fontFileName));
+		const ANSICHAR* FontPath = TCHAR_TO_ANSI(*FPaths::ProjectContentDir().Append("SoundFont/" + fontFileName));
 		if (fluid_synth_sfload(vpsynth, FontPath, 1) == FLUID_FAILED || fluid_synth_sfload(midisynth, FontPath, 1) == FLUID_FAILED)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Loading the SoundFont '%s' failed!"), *fontFileName);
@@ -277,30 +306,29 @@ void ABase_Piano_Pawn::Initialize()
 		}
 	}
 
-	for (int i = 0; i < FontArray.Num(); i++)
+	for (int i = 0; i < Fonts.Num(); i++)
 	{
-		if (FontArray[i] == DefaultFont)
+		if (Fonts[i] == DefaultFont)
 		{
 			Channel = i + 1;
 		}
 	}
 	fluid_synth_set_gain(vpsynth, Gain);
 
-	// Create auto player
-	fluid_player = new_fluid_player(midisynth);
-	fluid_player_add(fluid_player, TCHAR_TO_ANSI(*FPaths::ProjectContentDir().Append("Midi/KOKORONASHI.mid")));
-
 	// Print all instruments
-	PrintAllInstruments(vpsynth, Channel);
+	PrintAllInstruments(midisynth, Channel);
 }
 
 void ABase_Piano_Pawn::OnEndPlay()
 {
 	fluid_player_stop(fluid_player);
-	for (int i = 0; i < FontArray.Num(); i++)
+	for (int i = 0; i < Fonts.Num(); i++)
 	{
 		fluid_synth_all_notes_off(vpsynth, i + 1);
 		fluid_synth_all_sounds_off(vpsynth, i + 1);
+
+		fluid_synth_all_notes_off(midisynth, i + 1);
+		fluid_synth_all_sounds_off(midisynth, i + 1);
 	}
 }
 

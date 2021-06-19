@@ -23,6 +23,7 @@ public:
 	fluid_synth_t* midisynth;
 	fluid_player_t* fluid_player;
 	int Channel = 1;
+	int MidiIndex = 0;
 	bool fluid_player_playing = false;
 
 	// Channel: Program
@@ -54,7 +55,10 @@ public:
 		FString DefaultFont = "MasonHamlin-A-v7.sf2";
 
 	UPROPERTY(VisibleAnywhere, Category = "Piano")
-		TArray<FString> FontArray = {};
+		TArray<FString> Fonts = {};
+
+	UPROPERTY(VisibleAnywhere, Category = "Piano")
+		TArray<FString> Midis = {};
 
 	UPROPERTY(VisibleAnywhere, Category = "Piano")
 		bool Sustain = false;
@@ -80,6 +84,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 		void SoundFontIncrement(int Increment);
+
+	UFUNCTION(BlueprintCallable)
+		void MidiIncrement(int Increment);
 
 	// Sets default values for this pawn's properties
 	ABase_Piano_Pawn();
