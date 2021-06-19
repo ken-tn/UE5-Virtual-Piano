@@ -153,7 +153,7 @@ void ABase_Piano_Pawn::OnKeyDown(FKey Key)
 	const FString KeyName = *Key.GetDisplayName().ToString().ToLower();
 
 	// print key
-	UE_LOG(LogTemp, Warning, TEXT("Key: %s"), *KeyName);
+	//UE_LOG(LogTemp, Warning, TEXT("Key: %s"), *KeyName);
 
 	/*
 	* pointers are scary
@@ -256,16 +256,6 @@ void ABase_Piano_Pawn::OnKeyUp(FKey Key)
 	UE_LOG(LogTemp, Warning, TEXT("Key Released: %d"), note);
 }
 
-// Sets default values
-ABase_Piano_Pawn::ABase_Piano_Pawn()
-{
- 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-
-	FFileManagerGeneric::Get().FindFiles(Fonts, *FPaths::ProjectContentDir().Append("SoundFont/"));
-	FFileManagerGeneric::Get().FindFiles(Midis, *FPaths::ProjectContentDir().Append("Midi/"));
-}
-
 void ABase_Piano_Pawn::PrintAllInstruments(fluid_synth_t* synth, int sfont_id)
 {
 	fluid_preset_t* preset;
@@ -315,8 +305,23 @@ void ABase_Piano_Pawn::Initialize()
 	}
 	fluid_synth_set_gain(vpsynth, Gain);
 
+	fluid_player = new_fluid_player(midisynth);
+	fluid_player_add(fluid_player, TCHAR_TO_ANSI(*FPaths::ProjectContentDir().Append("Midi/" + Midis[0])));
+
 	// Print all instruments
-	PrintAllInstruments(midisynth, Channel);
+	//PrintAllInstruments(midisynth, Channel);
+}
+
+// Sets default values
+ABase_Piano_Pawn::ABase_Piano_Pawn()
+{
+ 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	PrimaryActorTick.bCanEverTick = true;
+
+	FFileManagerGeneric::Get().FindFiles(Fonts, *FPaths::ProjectContentDir().Append("SoundFont/"));
+	FFileManagerGeneric::Get().FindFiles(Midis, *FPaths::ProjectContentDir().Append("Midi/"));
+
+	Initialize();
 }
 
 void ABase_Piano_Pawn::OnEndPlay()
@@ -325,9 +330,8 @@ void ABase_Piano_Pawn::OnEndPlay()
 	for (int i = 0; i < Fonts.Num(); i++)
 	{
 		fluid_synth_all_notes_off(vpsynth, i + 1);
-		fluid_synth_all_sounds_off(vpsynth, i + 1);
-
 		fluid_synth_all_notes_off(midisynth, i + 1);
+		fluid_synth_all_sounds_off(vpsynth, i + 1);
 		fluid_synth_all_sounds_off(midisynth, i + 1);
 	}
 }
@@ -336,8 +340,6 @@ void ABase_Piano_Pawn::OnEndPlay()
 void ABase_Piano_Pawn::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	Initialize();
 }
 
 void ABase_Piano_Pawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
