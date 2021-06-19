@@ -7,11 +7,10 @@
 #include "GameFramework/Pawn.h"
 #include "Base_Piano_Pawn.generated.h"
 
-UENUM()
-enum ESoundFont {
-	MasonHamlin		UMETA(DisplayName = "MasonHamlin A v7"),
-	Arachno			UMETA(DisplayName = "Arachno SoundFont - Version 1.0"),
-};
+// Declare delegate types
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FIntDelegate, const int, Int);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FFloatDelegate, const float, Float);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FStringIntDelegate, const FString, String, int, Int);
 
 UCLASS()
 class PIANO_API ABase_Piano_Pawn : public APawn
@@ -23,21 +22,39 @@ public:
 	fluid_synth_t* vpsynth;
 	fluid_synth_t* midisynth;
 	fluid_player_t* fluid_player;
+	int Channel = 1;
 	bool fluid_player_playing = false;
-	TArray<FString> FontArray = {
-		"MasonHamlin-A-v7.sf2",
-		"Arachno SoundFont - Version 1.0.sf2"
-	};
+
+	// Channel: Program
+	int CurrentProgram[100] = { 0 };
 
 	void ToggleAuto();
 	void OnKeyDown(FKey key);
 	void OnKeyUp(FKey key);
 	void PrintAllInstruments(fluid_synth_t* synth, int sfont_id);
+	void Initialize();
+	void OnEndPlay();
 	int LetterToNote(const FString KeyName);
 
-	/** The type of object the interactable is */
+	// Delegates
+	UPROPERTY(BlueprintAssignable)
+		FIntDelegate TransposeChanged;
+
+	UPROPERTY(BlueprintAssignable)
+		FFloatDelegate GainChanged;
+
+	UPROPERTY(BlueprintAssignable)
+		FStringIntDelegate InstrumentChanged;
+
+	UPROPERTY(BlueprintAssignable)
+		FStringIntDelegate FontChanged;
+
+	// Properties
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Piano")
-		TEnumAsByte<ESoundFont> PianoFont;
+		FString DefaultFont = "MasonHamlin-A-v7.sf2";
+
+	UPROPERTY(VisibleAnywhere, Category = "Piano")
+		TArray<FString> FontArray = {};
 
 	UPROPERTY(VisibleAnywhere, Category = "Piano")
 		bool Sustain = false;
@@ -48,8 +65,21 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Piano")
 		int Transposition = 0;
 
+	// Functions
 	UFUNCTION(BlueprintCallable)
-		void SetGain(float NewGain);
+		void TransposeIncrement(int Increment);
+
+	UFUNCTION(BlueprintCallable)
+		void GainIncrement(float Increment);
+
+	UFUNCTION(BlueprintCallable)
+		FString ChangeInstrument(const int chanindex, const int programindex);
+
+	UFUNCTION(BlueprintCallable)
+		void InstrumentIncrement(int Increment);
+
+	UFUNCTION(BlueprintCallable)
+		void SoundFontIncrement(int Increment);
 
 	// Sets default values for this pawn's properties
 	ABase_Piano_Pawn();

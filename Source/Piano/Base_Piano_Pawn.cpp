@@ -3,6 +3,7 @@
 
 #include "Base_Piano_Pawn.h"
 #include <fluidsynth.h>
+#include "HAL/FileManagerGeneric.h"
 
 int ABase_Piano_Pawn::LetterToNote(const FString KeyName)
 {
@@ -36,11 +37,6 @@ int ABase_Piano_Pawn::LetterToNote(const FString KeyName)
 	}
 }
 
-void ABase_Piano_Pawn::SetGain(const float newGain)
-{
-	fluid_synth_set_gain(vpsynth, newGain);
-}
-
 void ABase_Piano_Pawn::ToggleAuto()
 {
 	if (fluid_player_playing)
@@ -55,45 +51,141 @@ void ABase_Piano_Pawn::ToggleAuto()
 	fluid_player_playing = !fluid_player_playing;
 }
 
+void ABase_Piano_Pawn::TransposeIncrement(int Increment)
+{
+	Transposition += Increment;
+	TransposeChanged.Broadcast(Transposition);
+	UE_LOG(LogTemp, Warning, TEXT("Transposition: %d"), Transposition);
+}
+
+void ABase_Piano_Pawn::GainIncrement(float Increment)
+{
+	Gain += Increment;
+	fluid_synth_set_gain(vpsynth, Gain);
+	GainChanged.Broadcast(Gain);
+	UE_LOG(LogTemp, Warning, TEXT("Gain: %f"), Gain);
+}
+
+FString ABase_Piano_Pawn::ChangeInstrument(const int chanindex, const int programindex)
+{
+	if (programindex < 0)
+	{
+		return "";
+	}
+	fluid_sfont_t* sfont = fluid_synth_get_sfont_by_id(vpsynth, Channel);
+	fluid_preset_t* preset;
+
+	fluid_sfont_iteration_start(sfont);
+	for (int i = 0; i < programindex; i++)
+	{
+		preset = fluid_sfont_iteration_next(sfont);
+		if (preset == NULL)
+		{
+			return "";
+		}
+	}
+
+	if ((preset = fluid_sfont_iteration_next(sfont)) != NULL)
+	{
+		fluid_synth_program_change(vpsynth, chanindex, programindex);
+		fluid_synth_program_change(midisynth, chanindex, programindex);
+		return FString(fluid_preset_get_name(preset));
+	}
+	else
+	{
+		return "";
+	}
+}
+
+void ABase_Piano_Pawn::InstrumentIncrement(int Increment)
+{
+	CurrentProgram[Channel - 1] += Increment;
+	FString NewInstrument = ChangeInstrument(Channel, CurrentProgram[Channel - 1]);
+	if (NewInstrument == "")
+	{
+		CurrentProgram[Channel - 1] -= Increment;
+	}
+	else
+	{
+		InstrumentChanged.Broadcast(NewInstrument, CurrentProgram[Channel - 1]);
+		UE_LOG(LogTemp, Warning, TEXT("Preset: %s"), *NewInstrument);
+	}
+}
+
+void ABase_Piano_Pawn::SoundFontIncrement(int Increment)
+{
+	const int FontArrayLength = FontArray.Num();
+	Channel += Increment;
+	if (Channel > FontArrayLength || Channel < 1)
+	{
+		Channel -= Increment;
+		return;
+	}
+	const FString fontFileName = *FontArray[Channel - 1];
+
+	FontChanged.Broadcast(fontFileName, Channel);
+	UE_LOG(LogTemp, Warning, TEXT("Sound Font: %s"), *fontFileName);
+	InstrumentIncrement(0);
+}
+
 void ABase_Piano_Pawn::OnKeyDown(FKey Key)
 {
 	const FString KeyName = *Key.GetDisplayName().ToString().ToLower();
 
-	UE_LOG(LogTemp, Warning, TEXT("Key: %s"), *KeyName);
+	// print key
+	//UE_LOG(LogTemp, Warning, TEXT("Key: %s"), *KeyName);
 
+	/*
+	* pointers are scary
+	#define FUNC_2(f, p1, p2) ((mathfunc2)(f))(p1, p2)
+	#define FUNC_4(f, p1, p2, p3, p4) ((mathfunc4)(f))(p1, p2, p3, p4)
+	typedef int ABase_Piano_Pawn::* (ABase_Piano_Pawn::*generic_fp)(void);
+
+	TMap<FString, generic_fp> funcMap;
+	funcMap.Add("up", ( (generic_fp)(&ABase_Piano_Pawn::TransposeIncrement) ));
+	*/
 	if (KeyName == "up")
 	{
-		Transposition += 1;
-		UE_LOG(LogTemp, Warning, TEXT("Transposition: %d"), Transposition);
-
+		TransposeIncrement(1);
 		return;
 	}
 	else if (KeyName == "down")
 	{
-		Transposition -= 1;
-		UE_LOG(LogTemp, Warning, TEXT("Transposition: %d"), Transposition);
-
+		TransposeIncrement(-1);
 		return;
 	}
 	else if (KeyName == "left")
 	{
-		Gain -= 0.01f;
-		SetGain(Gain);
-		UE_LOG(LogTemp, Warning, TEXT("Gain: %f"), Gain);
-
+		GainIncrement(-0.01f);
 		return;
 	}
 	else if (KeyName == "right")
 	{
-		Gain += 0.01f;
-		SetGain(Gain);
-		UE_LOG(LogTemp, Warning, TEXT("Gain: %f"), Gain);
-
+		GainIncrement(0.01f);
 		return;
+	}
+	else if (KeyName == "home")
+	{
+		InstrumentIncrement(1);
+		return;
+	}
+	else if (KeyName == "end")
+	{
+		InstrumentIncrement(-1);
+		return;
+	}
+	else if (KeyName == "right bracket")
+	{
+		SoundFontIncrement(1);
+	}
+	else if (KeyName == "left bracket")
+	{
+		SoundFontIncrement(-1);
 	}
 	else if (KeyName == "delete")
 	{
 		ToggleAuto();
+		return;
 	}
 	else if (KeyName == "space bar")
 	{
@@ -102,6 +194,7 @@ void ABase_Piano_Pawn::OnKeyDown(FKey Key)
 		{
 			fluid_synth_all_notes_off(vpsynth, 1);
 		}
+		return;
 	}
 
 	// Get note integer
@@ -112,8 +205,8 @@ void ABase_Piano_Pawn::OnKeyDown(FKey Key)
 	}
 
 	// Play note
-	fluid_synth_noteon(vpsynth, 1, note, 127);
-	UE_LOG(LogTemp, Warning, TEXT("%d"), note);
+	fluid_synth_noteon(vpsynth, Channel, note, 127);
+	//UE_LOG(LogTemp, Warning, TEXT("%d"), note);
 }
 
 void ABase_Piano_Pawn::OnKeyUp(FKey Key)
@@ -131,7 +224,7 @@ void ABase_Piano_Pawn::OnKeyUp(FKey Key)
 	}
 
 	// Release note
-	fluid_synth_noteoff(vpsynth, 1, note);
+	fluid_synth_noteoff(vpsynth, Channel, note);
 	UE_LOG(LogTemp, Warning, TEXT("Key Released: %d"), note);
 }
 
@@ -140,6 +233,8 @@ ABase_Piano_Pawn::ABase_Piano_Pawn()
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+
+	FFileManagerGeneric::Get().FindFiles(FontArray, *FPaths::ProjectContentDir().Append("Soundfonts/"));
 }
 
 void ABase_Piano_Pawn::PrintAllInstruments(fluid_synth_t* synth, int sfont_id)
@@ -148,8 +243,8 @@ void ABase_Piano_Pawn::PrintAllInstruments(fluid_synth_t* synth, int sfont_id)
 
 	fluid_sfont_t* sfont = fluid_synth_get_sfont_by_id(synth, sfont_id);
 	int offset = fluid_synth_get_bank_offset(synth, sfont_id);
-	fluid_sfont_iteration_start(sfont);
 
+	fluid_sfont_iteration_start(sfont);
 	while ((preset = fluid_sfont_iteration_next(sfont)) != NULL)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("%03d-%03d %s\n"),
@@ -159,13 +254,9 @@ void ABase_Piano_Pawn::PrintAllInstruments(fluid_synth_t* synth, int sfont_id)
 	}
 }
 
-// Called when the game starts or when spawned
-void ABase_Piano_Pawn::BeginPlay()
+void ABase_Piano_Pawn::Initialize()
 {
-	Super::BeginPlay();
-	
 	fluid_settings_t* settings;
-	int sfont_id;
 
 	settings = new_fluid_settings();
 	vpsynth = new_fluid_synth(settings);
@@ -176,15 +267,23 @@ void ABase_Piano_Pawn::BeginPlay()
 	fluid_audio_driver_t* adriver2 = new_fluid_audio_driver(settings, midisynth);
 
 	// Load a SoundFont and reset presets (so that new instruments get used from the SoundFont)
-	const ANSICHAR* FontPath = TCHAR_TO_ANSI(*FPaths::ProjectContentDir().Append("Soundfonts/" + FontArray[PianoFont.GetValue()]));
-	sfont_id = fluid_synth_sfload(vpsynth, FontPath, 1);
-	fluid_synth_sfload(midisynth, FontPath, 1);
-
-	if (sfont_id == FLUID_FAILED)
+	for (auto& fontFileName : FontArray)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Loading the SoundFont failed!"));
+		const ANSICHAR* FontPath = TCHAR_TO_ANSI(*FPaths::ProjectContentDir().Append("Soundfonts/" + fontFileName));
+		if (fluid_synth_sfload(vpsynth, FontPath, 1) == FLUID_FAILED || fluid_synth_sfload(midisynth, FontPath, 1) == FLUID_FAILED)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Loading the SoundFont '%s' failed!"), *fontFileName);
+			return;
+		}
 	}
 
+	for (int i = 0; i < FontArray.Num(); i++)
+	{
+		if (FontArray[i] == DefaultFont)
+		{
+			Channel = i + 1;
+		}
+	}
 	fluid_synth_set_gain(vpsynth, Gain);
 
 	// Create auto player
@@ -192,14 +291,30 @@ void ABase_Piano_Pawn::BeginPlay()
 	fluid_player_add(fluid_player, TCHAR_TO_ANSI(*FPaths::ProjectContentDir().Append("Midi/KOKORONASHI.mid")));
 
 	// Print all instruments
-	PrintAllInstruments(vpsynth, sfont_id);
+	PrintAllInstruments(vpsynth, Channel);
+}
+
+void ABase_Piano_Pawn::OnEndPlay()
+{
+	fluid_player_stop(fluid_player);
+	for (int i = 0; i < FontArray.Num(); i++)
+	{
+		fluid_synth_all_notes_off(vpsynth, i + 1);
+		fluid_synth_all_sounds_off(vpsynth, i + 1);
+	}
+}
+
+// Called when the game starts or when spawned
+void ABase_Piano_Pawn::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	Initialize();
 }
 
 void ABase_Piano_Pawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	fluid_player_stop(fluid_player);
-	fluid_synth_all_notes_off(vpsynth, 1);
-	fluid_synth_all_sounds_off(vpsynth, 1);
+	OnEndPlay();
 }
 
 // Called every frame
