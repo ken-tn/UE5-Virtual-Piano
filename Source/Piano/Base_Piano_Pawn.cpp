@@ -53,8 +53,8 @@ int ABase_Piano_Pawn::ChangeInstrument(int fontid, int programindex)
 
 	if ((preset = fluid_sfont_iteration_next(sfont)) != NULL)
 	{
-		fluid_synth_program_select(vpsynth, 1, FontID, fluid_synth_get_bank_offset(vpsynth, FontID), programindex);
-		fluid_synth_program_select(midisynth, 1, FontID, fluid_synth_get_bank_offset(vpsynth, FontID), programindex);
+		fluid_synth_program_select(vpsynth, 0, FontID, fluid_synth_get_bank_offset(vpsynth, FontID), programindex);
+		fluid_synth_program_select(midisynth, 0, FontID, fluid_synth_get_bank_offset(midisynth, FontID), programindex);
 		InstrumentChanged.Broadcast(FString(fluid_preset_get_name(preset)), programindex);
 		UE_LOG(LogTemp, Display, TEXT("CHANGE INSTRUMENT | Font ID: %d | Instrument ID: %d"), fontid, programindex);
 		return FLUID_OK;
@@ -82,8 +82,8 @@ int ABase_Piano_Pawn::LoadSoundfont(int fontIndex)
 		if (pair.Value == fontFileName)
 		{
 			FontID = pair.Key;
-			fluid_synth_program_select(vpsynth, 1, FontID, fluid_synth_get_bank_offset(vpsynth, FontID), CurrentProgram[fontIndex]);
-			fluid_synth_program_select(midisynth, 1, FontID, fluid_synth_get_bank_offset(vpsynth, FontID), CurrentProgram[fontIndex]);
+			fluid_synth_program_select(vpsynth, 0, FontID, fluid_synth_get_bank_offset(vpsynth, FontID), CurrentProgram[fontIndex]);
+			fluid_synth_program_select(midisynth, 0, FontID, fluid_synth_get_bank_offset(midisynth, FontID), CurrentProgram[fontIndex]);
 			return FLUID_OK;
 		}
 	}
@@ -91,9 +91,12 @@ int ABase_Piano_Pawn::LoadSoundfont(int fontIndex)
 	// Load a SoundFont and reset presets (so that new instruments get used from the SoundFont)
 	const ANSICHAR* FontPath = TCHAR_TO_ANSI(*FPaths::ProjectContentDir().Append("SoundFont/" + fontFileName));
 	int font = fluid_synth_sfload(vpsynth, FontPath, 1);
+	int font2 = fluid_synth_sfload(midisynth, FontPath, 1);
 	fluid_synth_set_bank_offset(vpsynth, font, font);
+	fluid_synth_set_bank_offset(midisynth, font2, font2);
 	UE_LOG(LogTemp, Display, TEXT("LOADED %s AS FONTID %d"), *fontFileName, font);
-	if (font == FLUID_FAILED || fluid_synth_sfload(midisynth, FontPath, 1) == FLUID_FAILED)
+	UE_LOG(LogTemp, Display, TEXT("LOADED MIDI %s AS FONTID %d"), *fontFileName, font2);
+	if (font == FLUID_FAILED || font2 == FLUID_FAILED)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Loading the SoundFont '%s' failed!"), FontPath);
 		return FLUID_FAILED;
@@ -257,7 +260,7 @@ void ABase_Piano_Pawn::OnKeyDown(FKey Key)
 	}
 
 	// Play note
-	fluid_synth_noteon(vpsynth, 1, note, 127);
+	fluid_synth_noteon(vpsynth, 0, note, 127);
 	UE_LOG(LogTemp, Display, TEXT("PLAYING NOTE | FontID: %d | Note: %d | Preset: %d"), FontID, note, CurrentProgram[FontIndex]);
 }
 
@@ -276,7 +279,7 @@ void ABase_Piano_Pawn::OnKeyUp(FKey Key)
 	}
 
 	// Release note
-	fluid_synth_noteoff(vpsynth, 1, note);
+	fluid_synth_noteoff(vpsynth, 0, note);
 	UE_LOG(LogTemp, Display, TEXT("Key Released: %d"), note);
 }
 
@@ -348,10 +351,10 @@ ABase_Piano_Pawn::ABase_Piano_Pawn()
 void ABase_Piano_Pawn::OnEndPlay()
 {
 	fluid_player_stop(fluid_player);
-	fluid_synth_all_notes_off(vpsynth, 1);
-	fluid_synth_all_notes_off(midisynth, 1);
-	fluid_synth_all_sounds_off(vpsynth, 1);
-	fluid_synth_all_sounds_off(midisynth, 1);
+	fluid_synth_all_notes_off(vpsynth, 0);
+	fluid_synth_all_notes_off(midisynth, 0);
+	fluid_synth_all_sounds_off(vpsynth, 0);
+	fluid_synth_all_sounds_off(midisynth, 0);
 	delete_fluid_audio_driver(vpdriver);
 	delete_fluid_audio_driver(mididriver);
 }
