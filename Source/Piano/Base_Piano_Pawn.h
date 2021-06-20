@@ -22,7 +22,10 @@ public:
 	fluid_synth_t* vpsynth;
 	fluid_synth_t* midisynth;
 	fluid_player_t* fluid_player;
-	int Channel = 1;
+	fluid_audio_driver_t* vpdriver;
+	fluid_audio_driver_t* mididriver;
+	int FontID = 1;
+	int FontIndex = 0;
 	int MidiIndex = 0;
 	bool fluid_player_playing = false;
 
@@ -51,8 +54,11 @@ public:
 		FStringIntDelegate FontChanged;
 
 	// Properties
+	UPROPERTY(VisibleAnywhere)
+		TMap<int, FString> LoadedFonts;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Piano")
-		FString DefaultFont = "MasonHamlin-A-v7.sf2";
+		int DefaultFont = 0;
 
 	UPROPERTY(VisibleAnywhere, Category = "Piano")
 		TArray<FString> Fonts = {};
@@ -77,7 +83,7 @@ public:
 		void GainIncrement(float Increment);
 
 	UFUNCTION(BlueprintCallable)
-		FString ChangeInstrument(const int chanindex, const int programindex);
+		int ChangeInstrument(int fontid, int programindex);
 
 	UFUNCTION(BlueprintCallable)
 		void InstrumentIncrement(int Increment);
@@ -88,6 +94,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 		void MidiIncrement(int Increment);
 
+	UFUNCTION()
+		void OnInstrumentChanged(const FString Instrument, const int id);
+
+	UFUNCTION()
+		int LoadSoundfont(int fontIndex);
+
 	// Sets default values for this pawn's properties
 	ABase_Piano_Pawn();
 
@@ -97,6 +109,10 @@ protected:
 
 	// Called when game ends or destroyed
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 
 public:	
 	// Called every frame
