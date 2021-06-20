@@ -18,3 +18,4 @@ Content/Levels/StarterMap.umap
 *.sf2
 *.log
 *.log
+Build/WindowsNoEditor/FileOpenOrder/EditorOpenOrder.log
