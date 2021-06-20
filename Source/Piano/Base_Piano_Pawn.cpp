@@ -259,8 +259,17 @@ void ABase_Piano_Pawn::OnKeyDown(FKey Key)
 	}
 
 	// Play note
-	fluid_synth_noteon(vpsynth, 0, note, 127);
-	//UE_LOG(LogTemp, Display, TEXT("PLAYING NOTE | FontID: %d | Note: %d | Preset: %d"), FontID, note, CurrentProgram[FontIndex]);
+	//Client-specific functionality
+	SetCurrentNote(note);
+}
+
+void ABase_Piano_Pawn::SetCurrentNote(float note)
+{
+	if (GetLocalRole() == ROLE_Authority)
+	{
+		CurrentNote = note;
+		OnNotePlayed();
+	}
 }
 
 void ABase_Piano_Pawn::OnKeyUp(FKey Key)
@@ -345,6 +354,8 @@ ABase_Piano_Pawn::ABase_Piano_Pawn()
 
 	FFileManagerGeneric::Get().FindFiles(Fonts, *FPaths::ProjectContentDir().Append("SoundFont/"));
 	FFileManagerGeneric::Get().FindFiles(Midis, *FPaths::ProjectContentDir().Append("Midi/"));
+
+	CurrentNote = 1;
 }
 
 void ABase_Piano_Pawn::OnEndPlay()
@@ -356,6 +367,29 @@ void ABase_Piano_Pawn::OnEndPlay()
 	fluid_synth_all_sounds_off(midisynth, 0);
 	delete_fluid_audio_driver(vpdriver);
 	delete_fluid_audio_driver(mididriver);
+}
+
+void ABase_Piano_Pawn::GetLifetimeReplicatedProps(TArray <FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	//Replicate current note.
+	DOREPLIFETIME(ABase_Piano_Pawn, CurrentNote);
+}
+
+void ABase_Piano_Pawn::OnNotePlayed()
+{
+	UE_LOG(LogTemp, Display, TEXT("PLAYING NOTE %d"), CurrentNote);
+	if (IsLocallyControlled())
+	{
+		fluid_synth_noteon(vpsynth, 0, CurrentNote, 127);
+	}
+	CurrentNote = -1;
+}
+
+void ABase_Piano_Pawn::OnRep_CurrentNote()
+{
+	OnNotePlayed();
 }
 
 // Called when the game starts or when spawned
