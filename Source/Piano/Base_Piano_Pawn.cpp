@@ -94,8 +94,7 @@ int ABase_Piano_Pawn::LoadSoundfont(int fontIndex)
 	int font2 = fluid_synth_sfload(midisynth, FontPath, 1);
 	fluid_synth_set_bank_offset(vpsynth, font, font);
 	fluid_synth_set_bank_offset(midisynth, font2, font2);
-	UE_LOG(LogTemp, Display, TEXT("LOADED %s AS FONTID %d"), *fontFileName, font);
-	UE_LOG(LogTemp, Display, TEXT("LOADED MIDI %s AS FONTID %d"), *fontFileName, font2);
+	//UE_LOG(LogTemp, Display, TEXT("LOADED %s AS FONTID %d"), *fontFileName, font);
 	if (font == FLUID_FAILED || font2 == FLUID_FAILED)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Loading the SoundFont '%s' failed!"), FontPath);
@@ -261,7 +260,7 @@ void ABase_Piano_Pawn::OnKeyDown(FKey Key)
 
 	// Play note
 	fluid_synth_noteon(vpsynth, 0, note, 127);
-	UE_LOG(LogTemp, Display, TEXT("PLAYING NOTE | FontID: %d | Note: %d | Preset: %d"), FontID, note, CurrentProgram[FontIndex]);
+	//UE_LOG(LogTemp, Display, TEXT("PLAYING NOTE | FontID: %d | Note: %d | Preset: %d"), FontID, note, CurrentProgram[FontIndex]);
 }
 
 void ABase_Piano_Pawn::OnKeyUp(FKey Key)
@@ -280,7 +279,7 @@ void ABase_Piano_Pawn::OnKeyUp(FKey Key)
 
 	// Release note
 	fluid_synth_noteoff(vpsynth, 0, note);
-	UE_LOG(LogTemp, Display, TEXT("Key Released: %d"), note);
+	//UE_LOG(LogTemp, Display, TEXT("Key Released: %d"), note);
 }
 
 void ABase_Piano_Pawn::PrintAllInstruments(fluid_synth_t* synth, int sfont_id)
