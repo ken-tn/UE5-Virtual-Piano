@@ -14,4 +14,6 @@ class PIANO_API APianoGameModeBase : public AGameModeBase
 {
 	GENERATED_BODY()
 	
+protected:
+	virtual void PostLogin(APlayerController* NewPlayer) override;
 };

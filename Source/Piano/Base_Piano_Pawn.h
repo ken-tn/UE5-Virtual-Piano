@@ -69,7 +69,7 @@ public:
 		TMap<int, FString> LoadedFonts;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Piano")
-		int DefaultFont = 0;
+		int DefaultFont = 2;
 
 	UPROPERTY(VisibleAnywhere, Category = "Piano")
 		bool Sustain = false;

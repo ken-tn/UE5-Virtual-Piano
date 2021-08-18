@@ -177,19 +177,8 @@ int ABase_Piano_Pawn::LetterToNote(const FString KeyName)
 void ABase_Piano_Pawn::OnKeyDown(FKey Key)
 {
 	const FString KeyName = *Key.GetDisplayName().ToString().ToLower();
-
 	// print key
 	//UE_LOG(LogTemp, Display, TEXT("Key: %s"), *KeyName);
-
-	/*
-	* pointers are scary
-	#define FUNC_2(f, p1, p2) ((mathfunc2)(f))(p1, p2)
-	#define FUNC_4(f, p1, p2, p3, p4) ((mathfunc4)(f))(p1, p2, p3, p4)
-	typedef int ABase_Piano_Pawn::* (ABase_Piano_Pawn::*generic_fp)(void);
-
-	TMap<FString, generic_fp> funcMap;
-	funcMap.Add("up", ( (generic_fp)(&ABase_Piano_Pawn::TransposeIncrement) ));
-	*/
 	if (KeyName == "up")
 	{
 		TransposeIncrement(1);
@@ -265,11 +254,12 @@ void ABase_Piano_Pawn::OnKeyDown(FKey Key)
 
 void ABase_Piano_Pawn::SetCurrentNote(float note)
 {
-	if (GetLocalRole() == ROLE_Authority)
+	//UE_LOG(LogTemp, Display, TEXT("role: %s"), (GetLocalRole() == ROLE_Authority) ? *FString("true") : *FString("false"));
+	/*if (GetLocalRole() == ROLE_Authority)
 	{
-		CurrentNote = note;
-		OnNotePlayed();
-	}
+	}*/
+	CurrentNote = note;
+	OnNotePlayed();
 }
 
 void ABase_Piano_Pawn::OnKeyUp(FKey Key)
@@ -365,8 +355,9 @@ void ABase_Piano_Pawn::OnEndPlay()
 	fluid_synth_all_notes_off(midisynth, 0);
 	fluid_synth_all_sounds_off(vpsynth, 0);
 	fluid_synth_all_sounds_off(midisynth, 0);
-	delete_fluid_audio_driver(vpdriver);
-	delete_fluid_audio_driver(mididriver);
+	UE_LOG(LogTemp, Display, TEXT("%s"), (mididriver != NULL) ? *FString("true") : *FString("false"));
+	//delete_fluid_audio_driver(vpdriver);
+	//delete_fluid_audio_driver(mididriver);
 }
 
 void ABase_Piano_Pawn::GetLifetimeReplicatedProps(TArray <FLifetimeProperty>& OutLifetimeProps) const
@@ -379,9 +370,9 @@ void ABase_Piano_Pawn::GetLifetimeReplicatedProps(TArray <FLifetimeProperty>& Ou
 
 void ABase_Piano_Pawn::OnNotePlayed()
 {
-	UE_LOG(LogTemp, Display, TEXT("PLAYING NOTE %d"), CurrentNote);
 	if (IsLocallyControlled())
 	{
+		UE_LOG(LogTemp, Display, TEXT("PLAYING NOTE %d"), CurrentNote);
 		fluid_synth_noteon(vpsynth, 0, CurrentNote, 127);
 	}
 	CurrentNote = -1;
@@ -395,6 +386,7 @@ void ABase_Piano_Pawn::OnRep_CurrentNote()
 // Called when the game starts or when spawned
 void ABase_Piano_Pawn::BeginPlay()
 {
+	UE_LOG(LogTemp, Display, TEXT("POSSESSED PAWN"));
 	Super::BeginPlay();
 
 	InstrumentChanged.AddDynamic(this, &ABase_Piano_Pawn::OnInstrumentChanged);
