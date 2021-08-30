@@ -424,9 +424,9 @@ void ABase_Piano_Pawn::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 
 	DefaultFont = FMath::Clamp(DefaultFont, 0, Fonts.Num()-1);
 }
+#endif
 
 void ABase_Piano_Pawn::OnInstrumentChanged(const FString Instrument, const int id)
 {
 	UE_LOG(LogTemp, Display, TEXT("%s"), *Instrument);
 }
-#endif
