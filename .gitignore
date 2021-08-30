@@ -12,10 +12,8 @@ Saved
 *.suo
 *.xcodeproj
 *.xcworkspace
-Content/Levels/StarterMap_BuiltData.uasset
-Content/Levels/StarterMap.umap
 *.mid
 *.sf2
 *.log
-*.log
 Build/WindowsNoEditor/FileOpenOrder/EditorOpenOrder.log
+Content/Levels/StarterMap_BuiltData.uasset

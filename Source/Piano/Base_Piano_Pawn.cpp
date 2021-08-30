@@ -375,7 +375,7 @@ void ABase_Piano_Pawn::OnNotePlayed()
 {
 	if (IsLocallyControlled())
 	{
-		UE_LOG(LogTemp, Display, TEXT("PLAYING NOTE %d"), CurrentNote);
+		//UE_LOG(LogTemp, Display, TEXT("PLAYING NOTE %d"), CurrentNote);
 		fluid_synth_noteon(vpsynth, 0, CurrentNote, 127);
 	}
 	CurrentNote = -1;
