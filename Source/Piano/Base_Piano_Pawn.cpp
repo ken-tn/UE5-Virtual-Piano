@@ -152,7 +152,7 @@ int ABase_Piano_Pawn::LetterToNote(const FString KeyName)
 	}
 	else
 	{
-		APlayerController* PlayerController = Cast<APlayerController>(ABase_Piano_Pawn::GetController());
+		APlayerController* PlayerController = Cast<APlayerController>(GetController());
 		int offset = Transposition;
 		if (PlayerController->IsInputKeyDown("LeftShift") || PlayerController->IsInputKeyDown("RightShift"))
 		{
@@ -334,6 +334,9 @@ void ABase_Piano_Pawn::Initialize()
 
 	// Print all instruments
 	//PrintAllInstruments(midisynth, Channel);
+
+	// Broadcast events
+	SoundFontIncrement(0);
 }
 
 // Sets default values
