@@ -113,6 +113,11 @@ public:
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
+	UPROPERTY(EditAnywhere, Category = "Class Types")
+		TSubclassOf<UUserWidget> WidgetClass;
+
+	class UW_Piano* PianoWidget;
+
 	UPROPERTY(VisibleAnywhere, ReplicatedUsing = OnRep_CurrentNote, Category = "Piano")
 		int CurrentNote = 1;
 

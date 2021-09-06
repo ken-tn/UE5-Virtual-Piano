@@ -4,6 +4,9 @@
 #include "Base_Piano_Pawn.h"
 #include <fluidsynth.h>
 #include "HAL/FileManagerGeneric.h"
+#include "W_Piano.h"
+#include "Blueprint/UserWidget.h"
+#include "GameFramework/PlayerController.h"
 
 void ABase_Piano_Pawn::ToggleAuto()
 {
@@ -305,6 +308,13 @@ void printfluidlog(int level, const char* message, void* data)
 
 void ABase_Piano_Pawn::Initialize()
 {
+	InstrumentChanged.AddDynamic(this, &ABase_Piano_Pawn::OnInstrumentChanged);
+	PianoWidget = CreateWidget<UW_Piano>(Cast<APlayerController>(GetController()), WidgetClass);
+	if (PianoWidget != nullptr)
+	{
+		PianoWidget->AddToViewport();
+		UE_LOG(LogTemp, Warning, TEXT("Added UI from pawn"));
+	}
 #if WITH_EDITOR
 	fluid_set_log_function(FLUID_INFO, printfluidlog, NULL);
 #endif
@@ -347,6 +357,12 @@ ABase_Piano_Pawn::ABase_Piano_Pawn()
 
 	FFileManagerGeneric::Get().FindFiles(Fonts, *FPaths::ProjectContentDir().Append("SoundFont/"));
 	FFileManagerGeneric::Get().FindFiles(Midis, *FPaths::ProjectContentDir().Append("Midi/"));
+	ConstructorHelpers::FClassFinder<UUserWidget>WBP(TEXT("/Game/UI/WBP_Piano"));
+
+	if (WBP.Class != nullptr)
+	{
+		WidgetClass = WBP.Class;
+	}
 
 	CurrentNote = 1;
 }
@@ -389,11 +405,7 @@ void ABase_Piano_Pawn::OnRep_CurrentNote()
 // Called when the game starts or when spawned
 void ABase_Piano_Pawn::BeginPlay()
 {
-	UE_LOG(LogTemp, Display, TEXT("POSSESSED PAWN"));
 	Super::BeginPlay();
-
-	InstrumentChanged.AddDynamic(this, &ABase_Piano_Pawn::OnInstrumentChanged);
-	Initialize();
 }
 
 void ABase_Piano_Pawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
