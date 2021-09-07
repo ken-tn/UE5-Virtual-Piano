@@ -8,6 +8,79 @@
 #include "Blueprint/UserWidget.h"
 #include "GameFramework/PlayerController.h"
 
+#pragma region Instantiate
+
+void ABase_Piano_Pawn::Initialize()
+{
+	PianoWidget = CreateWidget<UW_Piano>(Cast<APlayerController>(GetController()), WidgetClass);
+	if (PianoWidget != nullptr)
+	{
+		PianoWidget->AddToViewport();
+	}
+
+	fluid_settings_t* settings = new_fluid_settings();
+	//fluid_settings_setint(settings, "synth.verbose", true);
+
+	vpsynth = new_fluid_synth(settings);
+	midisynth = new_fluid_synth(settings);
+	fluid_synth_set_gain(vpsynth, Gain);
+
+	// Create the audio driver. The synthesizer starts playing as soon as the driver is created.
+	vpdriver = new_fluid_audio_driver(settings, vpsynth);
+	mididriver = new_fluid_audio_driver(settings, midisynth);
+
+	if (vpdriver == NULL || mididriver == NULL)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Failed to create driver"));
+	}
+
+	LoadSoundfont(DefaultFont);
+	FontIndex = DefaultFont;
+
+	// Create fluid player
+	fluid_player = new_fluid_player(midisynth);
+	fluid_player_add(fluid_player, TCHAR_TO_ANSI(*FPaths::ProjectContentDir().Append("Midi/" + Midis[0])));
+
+	// Print all instruments
+	//PrintAllInstruments(midisynth, Channel);
+
+	// Broadcast events
+	SoundFontIncrement(0);
+}
+
+// Sets default values
+ABase_Piano_Pawn::ABase_Piano_Pawn()
+{
+ 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	PrimaryActorTick.bCanEverTick = true;
+
+	FFileManagerGeneric::Get().FindFiles(Fonts, *FPaths::ProjectContentDir().Append("SoundFont/"));
+	FFileManagerGeneric::Get().FindFiles(Midis, *FPaths::ProjectContentDir().Append("Midi/"));
+	ConstructorHelpers::FClassFinder<UUserWidget>WBP(TEXT("/Game/UI/WBP_Piano"));
+
+	if (WBP.Class != nullptr)
+	{
+		WidgetClass = WBP.Class;
+	}
+
+	CurrentNote = 1;
+}
+
+void ABase_Piano_Pawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	fluid_player_stop(fluid_player);
+	fluid_synth_all_notes_off(vpsynth, 0);
+	fluid_synth_all_notes_off(midisynth, 0);
+	fluid_synth_all_sounds_off(vpsynth, 0);
+	fluid_synth_all_sounds_off(midisynth, 0);
+	UE_LOG(LogTemp, Display, TEXT("%s"), (mididriver != NULL) ? *FString("true") : *FString("false"));
+	//delete_fluid_audio_driver(vpdriver);
+	//delete_fluid_audio_driver(mididriver);
+}
+
+#pragma endregion Instantiate
+
+#pragma region Functionality
 void ABase_Piano_Pawn::ToggleAuto()
 {
 	if (fluid_player_playing)
@@ -26,7 +99,6 @@ void ABase_Piano_Pawn::TransposeIncrement(int Increment)
 {
 	Transposition += Increment;
 	TransposeChanged.Broadcast(Transposition);
-	UE_LOG(LogTemp, Display, TEXT("Transposition: %d"), Transposition);
 }
 
 void ABase_Piano_Pawn::GainIncrement(float Increment)
@@ -35,7 +107,6 @@ void ABase_Piano_Pawn::GainIncrement(float Increment)
 	fluid_synth_set_gain(vpsynth, Gain);
 	fluid_synth_set_gain(midisynth, Gain);
 	GainChanged.Broadcast(Gain);
-	UE_LOG(LogTemp, Display, TEXT("Gain: %f"), Gain);
 }
 
 int ABase_Piano_Pawn::ChangeInstrument(int fontid, int programindex)
@@ -59,7 +130,6 @@ int ABase_Piano_Pawn::ChangeInstrument(int fontid, int programindex)
 		fluid_synth_program_select(vpsynth, 0, FontID, fluid_synth_get_bank_offset(vpsynth, FontID), programindex);
 		fluid_synth_program_select(midisynth, 0, FontID, fluid_synth_get_bank_offset(midisynth, FontID), programindex);
 		InstrumentChanged.Broadcast(FString(fluid_preset_get_name(preset)), programindex);
-		UE_LOG(LogTemp, Display, TEXT("CHANGE INSTRUMENT | Font ID: %d | Instrument ID: %d"), fontid, programindex);
 		return FLUID_OK;
 	}
 	else
@@ -176,11 +246,13 @@ int ABase_Piano_Pawn::LetterToNote(const FString KeyName)
 		}
 	}
 }
+#pragma endregion Functionality
+
+#pragma region Inputs
 
 void ABase_Piano_Pawn::OnKeyDown(FKey Key)
 {
 	const FString KeyName = *Key.GetDisplayName().ToString().ToLower();
-	// print key
 	//UE_LOG(LogTemp, Display, TEXT("Key: %s"), *KeyName);
 	if (KeyName == "up")
 	{
@@ -281,9 +353,20 @@ void ABase_Piano_Pawn::OnKeyUp(FKey Key)
 
 	// Release note
 	fluid_synth_noteoff(vpsynth, 0, note);
-	//UE_LOG(LogTemp, Display, TEXT("Key Released: %d"), note);
 }
 
+// Called to bind functionality to input
+void ABase_Piano_Pawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	PlayerInputComponent->BindAction("PianoKeyboardDown", IE_Pressed, this, &ABase_Piano_Pawn::OnKeyDown);
+	PlayerInputComponent->BindAction("PianoKeyboardUp", IE_Released, this, &ABase_Piano_Pawn::OnKeyUp);
+}
+
+#pragma endregion Inputs
+
+#pragma region Debugging
 void ABase_Piano_Pawn::PrintAllInstruments(fluid_synth_t* synth, int sfont_id)
 {
 	fluid_preset_t* preset;
@@ -301,83 +384,18 @@ void ABase_Piano_Pawn::PrintAllInstruments(fluid_synth_t* synth, int sfont_id)
 	}
 }
 
-void printfluidlog(int level, const char* message, void* data)
-{
-	UE_LOG(LogTemp, Display, TEXT("%s"), *FString(message));
-}
-
-void ABase_Piano_Pawn::Initialize()
-{
-	InstrumentChanged.AddDynamic(this, &ABase_Piano_Pawn::OnInstrumentChanged);
-	PianoWidget = CreateWidget<UW_Piano>(Cast<APlayerController>(GetController()), WidgetClass);
-	if (PianoWidget != nullptr)
-	{
-		PianoWidget->AddToViewport();
-		UE_LOG(LogTemp, Warning, TEXT("Added UI from pawn"));
-	}
 #if WITH_EDITOR
-	fluid_set_log_function(FLUID_INFO, printfluidlog, NULL);
+void ABase_Piano_Pawn::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	DefaultFont = FMath::Clamp(DefaultFont, 0, Fonts.Num()-1);
+}
 #endif
 
-	fluid_settings_t* settings = new_fluid_settings();
-	//fluid_settings_setint(settings, "synth.verbose", true);
+#pragma endregion Debugging
 
-	vpsynth = new_fluid_synth(settings);
-	midisynth = new_fluid_synth(settings);
-	fluid_synth_set_gain(vpsynth, Gain);
-
-	// Create the audio driver. The synthesizer starts playing as soon as the driver is created.
-	vpdriver = new_fluid_audio_driver(settings, vpsynth);
-	mididriver = new_fluid_audio_driver(settings, midisynth);
-
-	if (vpdriver == NULL || mididriver == NULL)
-	{
-		UE_LOG(LogTemp, Error, TEXT("Failed to create driver"));
-	}
-
-	LoadSoundfont(DefaultFont);
-	FontIndex = DefaultFont;
-
-	// Create fluid player
-	fluid_player = new_fluid_player(midisynth);
-	fluid_player_add(fluid_player, TCHAR_TO_ANSI(*FPaths::ProjectContentDir().Append("Midi/" + Midis[0])));
-
-	// Print all instruments
-	//PrintAllInstruments(midisynth, Channel);
-
-	// Broadcast events
-	SoundFontIncrement(0);
-}
-
-// Sets default values
-ABase_Piano_Pawn::ABase_Piano_Pawn()
-{
- 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-
-	FFileManagerGeneric::Get().FindFiles(Fonts, *FPaths::ProjectContentDir().Append("SoundFont/"));
-	FFileManagerGeneric::Get().FindFiles(Midis, *FPaths::ProjectContentDir().Append("Midi/"));
-	ConstructorHelpers::FClassFinder<UUserWidget>WBP(TEXT("/Game/UI/WBP_Piano"));
-
-	if (WBP.Class != nullptr)
-	{
-		WidgetClass = WBP.Class;
-	}
-
-	CurrentNote = 1;
-}
-
-void ABase_Piano_Pawn::OnEndPlay()
-{
-	fluid_player_stop(fluid_player);
-	fluid_synth_all_notes_off(vpsynth, 0);
-	fluid_synth_all_notes_off(midisynth, 0);
-	fluid_synth_all_sounds_off(vpsynth, 0);
-	fluid_synth_all_sounds_off(midisynth, 0);
-	UE_LOG(LogTemp, Display, TEXT("%s"), (mididriver != NULL) ? *FString("true") : *FString("false"));
-	//delete_fluid_audio_driver(vpdriver);
-	//delete_fluid_audio_driver(mididriver);
-}
+#pragma region Networking
 
 void ABase_Piano_Pawn::GetLifetimeReplicatedProps(TArray <FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -402,15 +420,13 @@ void ABase_Piano_Pawn::OnRep_CurrentNote()
 	OnNotePlayed();
 }
 
+#pragma endregion Networking
+
 // Called when the game starts or when spawned
 void ABase_Piano_Pawn::BeginPlay()
 {
 	Super::BeginPlay();
-}
 
-void ABase_Piano_Pawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
-{
-	OnEndPlay();
 }
 
 // Called every frame
@@ -420,25 +436,3 @@ void ABase_Piano_Pawn::Tick(float DeltaTime)
 
 }
 
-// Called to bind functionality to input
-void ABase_Piano_Pawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-	PlayerInputComponent->BindAction("PianoKeyboardDown", IE_Pressed, this, &ABase_Piano_Pawn::OnKeyDown);
-	PlayerInputComponent->BindAction("PianoKeyboardUp", IE_Released, this, &ABase_Piano_Pawn::OnKeyUp);
-}
-
-#if WITH_EDITOR
-void ABase_Piano_Pawn::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-
-	DefaultFont = FMath::Clamp(DefaultFont, 0, Fonts.Num()-1);
-}
-#endif
-
-void ABase_Piano_Pawn::OnInstrumentChanged(const FString Instrument, const int id)
-{
-	UE_LOG(LogTemp, Display, TEXT("%s"), *Instrument);
-}

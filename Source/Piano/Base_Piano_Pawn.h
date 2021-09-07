@@ -2,11 +2,12 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
+#include "GameFramework/Pawn.h"
+
 #include <fluidsynth.h>
 #include "Net/UnrealNetwork.h"
 #include "Engine/Engine.h"
-#include "CoreMinimal.h"
-#include "GameFramework/Pawn.h"
 #include "Base_Piano_Pawn.generated.h"
 
 // Declare delegate types
@@ -19,16 +20,8 @@ class PIANO_API ABase_Piano_Pawn : public APawn
 {
 	GENERATED_BODY()
 
-public:
-	UPROPERTY(VisibleAnywhere, Category = "Piano")
-		TArray<FString> Fonts = {};
-
-	UPROPERTY(VisibleAnywhere, Category = "Piano")
-		TArray<FString> Midis = {};
-
-	// Sets default values for this pawn's properties
-	ABase_Piano_Pawn();
-
+private:
+#pragma region Properties
 	const FString letterNoteMap = "1!2@34$5%6^78*9(0qQwWeErtTyYuiIoOpPasSdDfgGhHjJklLzZxcCvVbBnm";
 	fluid_synth_t* vpsynth;
 	fluid_synth_t* midisynth;
@@ -42,31 +35,27 @@ public:
 
 	// Channel: Program
 	int CurrentProgram[100] = { 0 };
+#pragma endregion Properties
 
+#pragma region Methods
 	void ToggleAuto();
 	void OnKeyDown(FKey key);
 	void OnKeyUp(FKey key);
 	void PrintAllInstruments(fluid_synth_t* synth, int sfont_id);
-	void Initialize();
-	void OnEndPlay();
 	int LetterToNote(const FString KeyName);
+#pragma endregion Methods
 
-	// Delegates
-	UPROPERTY(BlueprintAssignable)
-		FIntDelegate TransposeChanged;
-
-	UPROPERTY(BlueprintAssignable)
-		FFloatDelegate GainChanged;
-
-	UPROPERTY(BlueprintAssignable)
-		FStringIntDelegate InstrumentChanged;
-
-	UPROPERTY(BlueprintAssignable)
-		FStringIntDelegate FontChanged;
-
+public:
+#pragma region Properties
 	// Properties
 	UPROPERTY(VisibleAnywhere)
 		TMap<int, FString> LoadedFonts;
+
+	UPROPERTY(VisibleAnywhere, Category = "Piano")
+		TArray<FString> Fonts = {};
+
+	UPROPERTY(VisibleAnywhere, Category = "Piano")
+		TArray<FString> Midis = {};
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Piano")
 		int DefaultFont = 2;
@@ -79,38 +68,59 @@ public:
 
 	UPROPERTY(VisibleAnywhere, Category = "Piano")
 		int Transposition = 0;
+#pragma endregion Properties
 
-	// Functions
-	UFUNCTION(BlueprintCallable)
-		void TransposeIncrement(int Increment);
-
-	UFUNCTION(BlueprintCallable)
-		void GainIncrement(float Increment);
-
-	UFUNCTION(BlueprintCallable)
-		int ChangeInstrument(int fontid, int programindex);
-
-	UFUNCTION(BlueprintCallable)
-		void InstrumentIncrement(int Increment);
-
-	UFUNCTION(BlueprintCallable)
-		void SoundFontIncrement(int Increment);
-
-	UFUNCTION(BlueprintCallable)
-		void MidiIncrement(int Increment);
-
-	UFUNCTION()
-		void OnInstrumentChanged(const FString Instrument, const int id);
+#pragma region Methods
+	void Initialize();
 
 	UFUNCTION()
 		int LoadSoundfont(int fontIndex);
+#pragma endregion Methods
 
-	/** Setter for Current Health. Clamps the value between 0 and MaxHealth and calls OnHealthUpdate. Should only be called on the server.*/
+#pragma region BPMethods
+	// Functions
+	UFUNCTION(BlueprintCallable, Category = "Piano")
+		void TransposeIncrement(int Increment);
+
+	UFUNCTION(BlueprintCallable, Category = "Piano")
+		void GainIncrement(float Increment);
+
+	UFUNCTION(BlueprintCallable, Category = "Piano")
+		int ChangeInstrument(int fontid, int programindex);
+
+	UFUNCTION(BlueprintCallable, Category = "Piano")
+		void InstrumentIncrement(int Increment);
+
+	UFUNCTION(BlueprintCallable, Category = "Piano")
+		void SoundFontIncrement(int Increment);
+
+	UFUNCTION(BlueprintCallable, Category = "Piano")
+		void MidiIncrement(int Increment);
+
 	UFUNCTION(BlueprintCallable, Category = "Piano")
 		void SetCurrentNote(float note);
+#pragma endregion BPMethods
+
+#pragma region Delegates
+	// Delegates
+	UPROPERTY(BlueprintAssignable)
+		FIntDelegate TransposeChanged;
+
+	UPROPERTY(BlueprintAssignable)
+		FFloatDelegate GainChanged;
+
+	UPROPERTY(BlueprintAssignable)
+		FStringIntDelegate InstrumentChanged;
+
+	UPROPERTY(BlueprintAssignable)
+		FStringIntDelegate FontChanged;
+#pragma endregion Delegates
 
 	/** Property replication */
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	// Sets default values for this pawn's properties
+	ABase_Piano_Pawn();
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Class Types")

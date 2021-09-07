@@ -13,12 +13,6 @@ UCLASS()
 class PIANO_API UW_Piano : public UUserWidget
 {
 	GENERATED_BODY()
-
-public:
-	UW_Piano(const FObjectInitializer& ObjectInitializer);
-
-	// Optionally override the Blueprint "Event Construct" event
-	virtual void NativeConstruct() override;
 	
 protected:
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
