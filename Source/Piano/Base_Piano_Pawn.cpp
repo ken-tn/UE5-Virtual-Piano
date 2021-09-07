@@ -12,11 +12,15 @@
 
 void ABase_Piano_Pawn::Initialize()
 {
+	// Add UI to Viewport
 	PianoWidget = CreateWidget<UW_Piano>(Cast<APlayerController>(GetController()), WidgetClass);
 	if (PianoWidget != nullptr)
 	{
 		PianoWidget->AddToViewport();
 	}
+
+	// Clamp DefaultFont to font limit
+	DefaultFont = FMath::Clamp(DefaultFont, 0, Fonts.Num() - 1);
 
 	fluid_settings_t* settings = new_fluid_settings();
 	//fluid_settings_setint(settings, "synth.verbose", true);
