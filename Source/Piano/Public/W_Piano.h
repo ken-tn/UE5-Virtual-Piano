@@ -14,6 +14,13 @@ class PIANO_API UW_Piano : public UUserWidget
 {
 	GENERATED_BODY()
 	
+public:
+	UPROPERTY()
+		class UButton* ExampleButton;
+
+private:
+	virtual void NativeConstruct() override;
+
 protected:
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 		class UTextBlock* FontLabel;

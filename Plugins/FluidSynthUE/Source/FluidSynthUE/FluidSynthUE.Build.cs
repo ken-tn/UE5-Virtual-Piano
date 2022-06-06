@@ -13,6 +13,7 @@ public class FluidSynthUE : ModuleRules
 		PublicIncludePaths.AddRange(
 			new string[] {
 				// ... add public include paths required here ...
+				Path.Combine(PluginDirectory, "ThirdParty/include")
 			}
 			);
 
@@ -49,11 +50,21 @@ public class FluidSynthUE : ModuleRules
 			}
 			);
 
-		// Add any import libraries or static libraries
-		PublicAdditionalLibraries.Add(Path.Combine(PluginDirectory, "ThirdParty/lib", "libfluidsynth.dll.a"));
-		PublicAdditionalLibraries.Add(Path.Combine(PluginDirectory, "ThirdParty/lib", "libfluidsynth.a"));
+		PublicAdditionalLibraries.AddRange(
+			new string[]
+			{
+				Path.Combine(PluginDirectory, "ThirdParty/lib", "libfluidsynth.dll.a"),
+				Path.Combine(PluginDirectory, "ThirdParty/lib", "libfluidsynth.a")
+			}
+			);
 
-		// Add any include paths for the plugin
-		PublicIncludePaths.Add(Path.Combine(PluginDirectory, "ThirdParty/include"));
+		PublicDelayLoadDLLs.Add("libfluidsynth-3.dll");
+
+		string dllFolder = Path.Combine(PluginDirectory, "ThirdParty/dll");
+		foreach (string dll in Directory.GetFiles(dllFolder, "*.dll", SearchOption.AllDirectories))
+        {
+			string dllPath = Path.Combine("$(BinaryOutputDir)/", Path.GetFileName(dll));
+			RuntimeDependencies.Add(dllPath, dll);
+		}
 	}
 }
