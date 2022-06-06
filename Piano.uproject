@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "5.0EA",
+	"EngineAssociation": "{B1740FAA-4E60-0C78-9E7B-D8A9D4D41FAA}",
 	"Category": "",
 	"Description": "",
 	"Modules": [
@@ -41,6 +41,10 @@
 				"Mac",
 				"Linux"
 			]
+		},
+		{
+			"Name": "FluidSynthUE",
+			"Enabled": false
 		}
 	]
 }

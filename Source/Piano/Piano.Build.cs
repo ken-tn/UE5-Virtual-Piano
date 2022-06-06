@@ -10,7 +10,7 @@ public class Piano : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "FluidSynthUE4",  "Core", "CoreUObject", "Engine", "InputCore" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "FluidSynthUE" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
