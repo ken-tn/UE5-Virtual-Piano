@@ -454,7 +454,7 @@ void APianoPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent
 
 				if (Config->IA_SustainReleased)
 				{
-					Input->BindAction(Config->IA_SustainReleased, ETriggerEvent::Triggered, this, &APianoPawn::TriggerSustainPressed);
+					Input->BindAction(Config->IA_SustainReleased, ETriggerEvent::Triggered, this, &APianoPawn::TriggerSustainReleased);
 				}
 			}
 			else
