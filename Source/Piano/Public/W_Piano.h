@@ -16,16 +16,20 @@ class PIANO_API UW_Piano : public UUserWidget
 	
 public:
 	UPROPERTY()
-		class UButton* ExampleButton;
+	class UButton* ExampleButton;
 
 private:
 	virtual void NativeConstruct() override;
 
 protected:
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-		class UTextBlock* FontLabel;
+	class UTextBlock* FontLabel;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-		class UTextBlock* InstrumentLabel;
+	class UTextBlock* InstrumentLabel;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
-		class UTextBlock* TranspositionLabel;
+	class UTextBlock* TranspositionLabel;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	class UTextBlock* GainLabel;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	class UTextBlock* MidiLabel;
 };

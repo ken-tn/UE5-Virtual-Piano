@@ -2,6 +2,7 @@
 
 Developed with Unreal Engine 5.5.2
 
-Need to create "SoundFont" and "Midi" folder in /Content/ manually and add .sf2/.mid files
+Place SoundFont (.sf2) files inside Content/SoundFont.
+Place Midi (.mid) files inside Content/Midi.
 
 FluidSynth: https://github.com/FluidSynth/fluidsynth
