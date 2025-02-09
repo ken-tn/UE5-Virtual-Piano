@@ -1,17 +1,25 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Base_Piano_Pawn.h"
-#include <fluidsynth.h>
+#include "PianoPawn.h"
+#include "fluidsynth.h"
 #include "HAL/FileManagerGeneric.h"
 #include "W_Piano.h"
 #include "Blueprint/UserWidget.h"
+#include "EnhancedInputSubsystems.h"
 #include "GameFramework/PlayerController.h"
 
 #pragma region Instantiate
 
-void ABase_Piano_Pawn::Initialize()
+void APianoPawn::Initialize()
 {
+	// Something went horribly wrong, but this prevents a full crash.
+	if (this == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("WidgetClass not found"));
+		return;
+	}
+
 	// Add UI to Viewport
 	PianoWidget = CreateWidget<UW_Piano>(Cast<APlayerController>(GetController()), WidgetClass);
 	if (PianoWidget != nullptr)
@@ -53,7 +61,7 @@ void ABase_Piano_Pawn::Initialize()
 }
 
 // Sets default values
-ABase_Piano_Pawn::ABase_Piano_Pawn()
+APianoPawn::APianoPawn()
 {
 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -73,7 +81,7 @@ ABase_Piano_Pawn::ABase_Piano_Pawn()
 #pragma endregion Instantiate
 
 #pragma region Functionality
-void ABase_Piano_Pawn::ToggleAuto()
+void APianoPawn::ToggleAuto()
 {
 	if (fluid_player_playing)
 	{
@@ -87,13 +95,13 @@ void ABase_Piano_Pawn::ToggleAuto()
 	fluid_player_playing = !fluid_player_playing;
 }
 
-void ABase_Piano_Pawn::TransposeIncrement(int Increment)
+void APianoPawn::TransposeIncrement(int Increment)
 {
 	Transposition += Increment;
 	TransposeChanged.Broadcast(Transposition);
 }
 
-void ABase_Piano_Pawn::GainIncrement(float Increment)
+void APianoPawn::GainIncrement(float Increment)
 {
 	Gain += Increment;
 	fluid_synth_set_gain(vpsynth, Gain);
@@ -101,7 +109,7 @@ void ABase_Piano_Pawn::GainIncrement(float Increment)
 	GainChanged.Broadcast(Gain);
 }
 
-int ABase_Piano_Pawn::ChangeInstrument(int fontid, int programindex)
+int APianoPawn::ChangeInstrument(int fontid, int programindex)
 {
 	if (programindex < 0)
 	{
@@ -130,7 +138,7 @@ int ABase_Piano_Pawn::ChangeInstrument(int fontid, int programindex)
 	}
 }
 
-void ABase_Piano_Pawn::InstrumentIncrement(int Increment)
+void APianoPawn::InstrumentIncrement(int Increment)
 {
 	CurrentProgram[FontIndex] += Increment;
 	if (ChangeInstrument(FontID, CurrentProgram[FontIndex]) == FLUID_FAILED)
@@ -139,7 +147,7 @@ void ABase_Piano_Pawn::InstrumentIncrement(int Increment)
 	}
 }
 
-int ABase_Piano_Pawn::LoadSoundfont(int fontIndex)
+int APianoPawn::LoadSoundfont(int fontIndex)
 {
 	FString fontFileName = Fonts[fontIndex];
 	for (auto& pair : LoadedFonts)
@@ -171,7 +179,7 @@ int ABase_Piano_Pawn::LoadSoundfont(int fontIndex)
 	return FLUID_OK;
 }
 
-void ABase_Piano_Pawn::SoundFontIncrement(int Increment)
+void APianoPawn::SoundFontIncrement(int Increment)
 {
 	FontIndex += Increment;
 	if (FontIndex > Fonts.Num()-1 || FontIndex < 0)
@@ -186,7 +194,7 @@ void ABase_Piano_Pawn::SoundFontIncrement(int Increment)
 	FontChanged.Broadcast(Fonts[FontIndex], FontIndex);
 }
 
-void ABase_Piano_Pawn::MidiIncrement(int Increment)
+void APianoPawn::MidiIncrement(int Increment)
 {
 	MidiIndex += Increment;
 	if (MidiIndex > Midis.Num() || MidiIndex < 0)
@@ -207,7 +215,7 @@ void ABase_Piano_Pawn::MidiIncrement(int Increment)
 	UE_LOG(LogTemp, Display, TEXT("Midi track: %s"), *midiFileName);
 }
 
-int ABase_Piano_Pawn::LetterToNote(const FString KeyName)
+int APianoPawn::LetterToNote(const FString KeyName)
 {
 	int note = letterNoteMap.Find(KeyName);
 
@@ -242,70 +250,81 @@ int ABase_Piano_Pawn::LetterToNote(const FString KeyName)
 
 #pragma region Inputs
 
-void ABase_Piano_Pawn::OnKeyDown(FKey Key)
+void APianoPawn::TriggerTransposeUp()
+{
+	TransposeIncrement(1);
+}
+
+void APianoPawn::TriggerTransposeDown()
+{
+	TransposeIncrement(-1);
+}
+
+void APianoPawn::TriggerGainIncrementUp()
+{
+	GainIncrement(0.01f);
+}
+
+void APianoPawn::TriggerGainIncrementDown()
+{
+	GainIncrement(-0.01f);
+}
+
+void APianoPawn::TriggerInstrumentNext()
+{
+	InstrumentIncrement(1);
+}
+
+void APianoPawn::TriggerInstrumentPrevious()
+{
+	InstrumentIncrement(-1);
+}
+
+void APianoPawn::TriggerSoundfontNext()
+{
+	SoundFontIncrement(1);
+}
+
+void APianoPawn::TriggerSoundfontPrevious()
+{
+	SoundFontIncrement(-1);
+}
+
+void APianoPawn::TriggerMIDINext()
+{
+	MidiIncrement(1);
+}
+
+void APianoPawn::TriggerMIDIPrevious()
+{
+	MidiIncrement(-1);
+}
+
+void APianoPawn::TriggerAutoplayToggle()
+{
+	ToggleAuto();
+}
+
+void APianoPawn::TriggerSustainPressed()
+{
+	Sustain = !Sustain;
+	if (Sustain)
+	{
+		fluid_synth_all_notes_off(vpsynth, 1);
+	}
+	return;
+}
+
+void APianoPawn::TriggerSustainReleased()
+{
+	Sustain = !Sustain;
+	return;
+}
+
+void APianoPawn::OnKeyDown(FKey Key)
 {
 	const FString KeyName = *Key.GetDisplayName().ToString().ToLower();
 	//UE_LOG(LogTemp, Display, TEXT("Key: %s"), *KeyName);
-	if (KeyName == "up")
-	{
-		TransposeIncrement(1);
-		return;
-	}
-	else if (KeyName == "down")
-	{
-		TransposeIncrement(-1);
-		return;
-	}
-	else if (KeyName == "left")
-	{
-		GainIncrement(-0.01f);
-		return;
-	}
-	else if (KeyName == "right")
-	{
-		GainIncrement(0.01f);
-		return;
-	}
-	else if (KeyName == "end")
-	{
-		InstrumentIncrement(1);
-		return;
-	}
-	else if (KeyName == "home")
-	{
-		InstrumentIncrement(-1);
-		return;
-	}
-	else if (KeyName == "right bracket")
-	{
-		SoundFontIncrement(1);
-	}
-	else if (KeyName == "left bracket")
-	{
-		SoundFontIncrement(-1);
-	}
-	else if (KeyName == "num *")
-	{
-		MidiIncrement(1);
-	}
-	else if (KeyName == "num -")
-	{
-		MidiIncrement(-1);
-	}
-	else if (KeyName == "delete")
-	{
-		ToggleAuto();
-		return;
-	}
-	else if (KeyName == "space bar")
-	{
-		Sustain = !Sustain;
-		if (Sustain)
-		{
-			fluid_synth_all_notes_off(vpsynth, 1);
-		}
-		return;
-	}
 
 	// Get note integer
 	int note = LetterToNote(KeyName);
@@ -315,11 +334,11 @@ void ABase_Piano_Pawn::OnKeyDown(FKey Key)
 	}
 
 	// Play note
-	//Client-specific functionality
+	// Client-specific functionality
 	SetCurrentNote(note);
 }
 
-void ABase_Piano_Pawn::SetCurrentNote(float note)
+void APianoPawn::SetCurrentNote(float note)
 {
 	//UE_LOG(LogTemp, Display, TEXT("role: %s"), (GetLocalRole() == ROLE_Authority) ? *FString("true") : *FString("false"));
 	/*if (GetLocalRole() == ROLE_Authority)
@@ -329,13 +348,9 @@ void ABase_Piano_Pawn::SetCurrentNote(float note)
 	OnNotePlayed();
 }
 
-void ABase_Piano_Pawn::OnKeyUp(FKey Key)
+void APianoPawn::OnKeyUp(FKey Key)
 {
 	const FString KeyName = *Key.GetDisplayName().ToString().ToLower();
-	if (KeyName == "space bar")
-	{
-		Sustain = !Sustain;
-	}
 
 	int note = LetterToNote(KeyName);
 	if (note == -1 || !Sustain)
@@ -348,18 +363,112 @@ void ABase_Piano_Pawn::OnKeyUp(FKey Key)
 }
 
 // Called to bind functionality to input
-void ABase_Piano_Pawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void APianoPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	PlayerInputComponent->BindAction("PianoKeyboardDown", IE_Pressed, this, &ABase_Piano_Pawn::OnKeyDown);
-	PlayerInputComponent->BindAction("PianoKeyboardUp", IE_Released, this, &ABase_Piano_Pawn::OnKeyUp);
+	PlayerInputComponent->BindAction("PianoKeyboardDown", IE_Pressed, this, &APianoPawn::OnKeyDown);
+	PlayerInputComponent->BindAction("PianoKeyboardUp", IE_Released, this, &APianoPawn::OnKeyUp);
+
+	// Setup enhanced input
+	if (ULocalPlayer* LocalPlayer = Cast<APlayerController>(GetController())->GetLocalPlayer())
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* InputSystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+		{
+			// Set the mapping context
+			if (!InputMapping.IsNull())
+			{
+				InputSystem->ClearAllMappings();
+				InputSystem->AddMappingContext(InputMapping.LoadSynchronous(), 0);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("SetupPlayerInputComponent: Failed to bind context."));
+			}
+
+			// Bind the input actions to a method
+			if (InputConfigData != nullptr)
+			{
+				UEnhancedInputComponent* Input = Cast<UEnhancedInputComponent>(PlayerInputComponent);
+				UInputActionsConfig* Config = NewObject<UInputActionsConfig>(this, InputConfigData);
+
+				if (Config->IA_TransposeUp)
+				{
+					Input->BindAction(Config->IA_TransposeUp, ETriggerEvent::Triggered, this, &APianoPawn::TriggerTransposeUp);
+				}
+
+				if (Config->IA_TransposeDown)
+				{
+					Input->BindAction(Config->IA_TransposeDown, ETriggerEvent::Triggered, this, &APianoPawn::TriggerTransposeDown);
+				}
+
+				if (Config->IA_GainIncrementUp)
+				{
+					Input->BindAction(Config->IA_GainIncrementUp, ETriggerEvent::Triggered, this, &APianoPawn::TriggerGainIncrementUp);
+				}
+
+				if (Config->IA_GainIncrementDown)
+				{
+					Input->BindAction(Config->IA_GainIncrementDown, ETriggerEvent::Triggered, this, &APianoPawn::TriggerGainIncrementDown);
+				}
+
+				if (Config->IA_InstrumentNext)
+				{
+					Input->BindAction(Config->IA_InstrumentNext, ETriggerEvent::Triggered, this, &APianoPawn::TriggerInstrumentNext);
+				}
+
+				if (Config->IA_InstrumentPrevious)
+				{
+					Input->BindAction(Config->IA_InstrumentPrevious, ETriggerEvent::Triggered, this, &APianoPawn::TriggerInstrumentPrevious);
+				}
+
+				if (Config->IA_SoundfontNext)
+				{
+					Input->BindAction(Config->IA_SoundfontNext, ETriggerEvent::Triggered, this, &APianoPawn::TriggerSoundfontNext);
+				}
+
+				if (Config->IA_SoundfontPrevious)
+				{
+					Input->BindAction(Config->IA_SoundfontPrevious, ETriggerEvent::Triggered, this, &APianoPawn::TriggerSoundfontPrevious);
+				}
+
+				if (Config->IA_MIDINext)
+				{
+					Input->BindAction(Config->IA_MIDINext, ETriggerEvent::Triggered, this, &APianoPawn::TriggerMIDINext);
+				}
+
+				if (Config->IA_MIDIPrevious)
+				{
+					Input->BindAction(Config->IA_MIDIPrevious, ETriggerEvent::Triggered, this, &APianoPawn::TriggerMIDIPrevious);
+				}
+
+				if (Config->IA_AutoplayToggle)
+				{
+					Input->BindAction(Config->IA_AutoplayToggle, ETriggerEvent::Triggered, this, &APianoPawn::TriggerAutoplayToggle);
+				}
+
+				if (Config->IA_SustainPressed)
+				{
+					Input->BindAction(Config->IA_SustainPressed, ETriggerEvent::Triggered, this, &APianoPawn::TriggerSustainPressed);
+				}
+
+				if (Config->IA_SustainReleased)
+				{
+					Input->BindAction(Config->IA_SustainReleased, ETriggerEvent::Triggered, this, &APianoPawn::TriggerSustainPressed);
+				}
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("SetupPlayerInputComponent: Failed to bind actions."));
+			}
+		}
+	}
 }
 
 #pragma endregion Inputs
 
 #pragma region Debugging
-void ABase_Piano_Pawn::PrintAllInstruments(fluid_synth_t* synth, int sfont_id)
+void APianoPawn::PrintAllInstruments(fluid_synth_t* synth, int sfont_id)
 {
 	fluid_preset_t* preset;
 
@@ -377,7 +486,7 @@ void ABase_Piano_Pawn::PrintAllInstruments(fluid_synth_t* synth, int sfont_id)
 }
 
 #if WITH_EDITOR
-void ABase_Piano_Pawn::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+void APianoPawn::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
@@ -389,15 +498,15 @@ void ABase_Piano_Pawn::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 
 #pragma region Networking
 
-void ABase_Piano_Pawn::GetLifetimeReplicatedProps(TArray <FLifetimeProperty>& OutLifetimeProps) const
+void APianoPawn::GetLifetimeReplicatedProps(TArray <FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	//Replicate current note.
-	DOREPLIFETIME(ABase_Piano_Pawn, CurrentNote);
+	DOREPLIFETIME(APianoPawn, CurrentNote);
 }
 
-void ABase_Piano_Pawn::OnNotePlayed()
+void APianoPawn::OnNotePlayed()
 {
 	if (IsLocallyControlled())
 	{
@@ -407,7 +516,7 @@ void ABase_Piano_Pawn::OnNotePlayed()
 	CurrentNote = -1;
 }
 
-void ABase_Piano_Pawn::OnRep_CurrentNote()
+void APianoPawn::OnRep_CurrentNote()
 {
 	OnNotePlayed();
 }
@@ -415,14 +524,14 @@ void ABase_Piano_Pawn::OnRep_CurrentNote()
 #pragma endregion Networking
 
 // Called when the game starts or when spawned
-void ABase_Piano_Pawn::BeginPlay()
+void APianoPawn::BeginPlay()
 {
 	Super::BeginPlay();
 
 }
 
 // Called when game ends or destroyed
-void ABase_Piano_Pawn::EndPlay(EEndPlayReason::Type EndPlayReason)
+void APianoPawn::EndPlay(EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
 
@@ -437,7 +546,7 @@ void ABase_Piano_Pawn::EndPlay(EEndPlayReason::Type EndPlayReason)
 }
 
 // Called every frame
-void ABase_Piano_Pawn::Tick(float DeltaTime)
+void APianoPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 

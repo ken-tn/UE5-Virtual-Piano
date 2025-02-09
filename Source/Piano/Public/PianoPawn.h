@@ -4,11 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
-
-#include <fluidsynth.h>
 #include "Net/UnrealNetwork.h"
 #include "Engine/Engine.h"
-#include "Base_Piano_Pawn.generated.h"
+#include "EnhancedInputComponent.h"
+#include "InputMappingContext.h"
+#include "InputActionsConfig.h"
+#include <fluidsynth.h>
+#include "PianoPawn.generated.h"
 
 // Declare delegate types
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FIntDelegate, const int, Int);
@@ -16,7 +18,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FFloatDelegate, const float, Float);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FStringIntDelegate, const FString, String, int, Int);
 
 UCLASS()
-class PIANO_API ABase_Piano_Pawn : public APawn
+class PIANO_API APianoPawn : public APawn
 {
 	GENERATED_BODY()
 
@@ -46,6 +48,61 @@ private:
 #pragma endregion Methods
 
 public:
+#pragma region Input
+	/**
+	* Set using a derived blueprint instance. The Input Mapping Context used for the pawn.
+	*/
+	UPROPERTY(EditAnywhere, Category = "Input")
+	TSoftObjectPtr<UInputMappingContext> InputMapping;
+
+	/**
+	* Set using a derived blueprint instance. The Input Config used for the pawn.
+	*/
+	UPROPERTY(EditAnywhere, Category = "Input")
+	TSubclassOf<UInputActionsConfig> InputConfigData;
+
+	// Trigger functions for each input action
+	UFUNCTION(BlueprintCallable, Category = "Input", meta = (DisplayName = "UserInput"))
+	void TriggerTransposeUp();
+
+	UFUNCTION(BlueprintCallable, Category = "Input", meta = (DisplayName = "UserInput"))
+	void TriggerTransposeDown();
+
+	UFUNCTION(BlueprintCallable, Category = "Input", meta = (DisplayName = "UserInput"))
+	void TriggerGainIncrementUp();
+
+	UFUNCTION(BlueprintCallable, Category = "Input", meta = (DisplayName = "UserInput"))
+	void TriggerGainIncrementDown();
+
+	UFUNCTION(BlueprintCallable, Category = "Input", meta = (DisplayName = "UserInput"))
+	void TriggerInstrumentNext();
+
+	UFUNCTION(BlueprintCallable, Category = "Input", meta = (DisplayName = "UserInput"))
+	void TriggerInstrumentPrevious();
+
+	UFUNCTION(BlueprintCallable, Category = "Input", meta = (DisplayName = "UserInput"))
+	void TriggerSoundfontNext();
+
+	UFUNCTION(BlueprintCallable, Category = "Input", meta = (DisplayName = "UserInput"))
+	void TriggerSoundfontPrevious();
+
+	UFUNCTION(BlueprintCallable, Category = "Input", meta = (DisplayName = "UserInput"))
+	void TriggerMIDINext();
+
+	UFUNCTION(BlueprintCallable, Category = "Input", meta = (DisplayName = "UserInput"))
+	void TriggerMIDIPrevious();
+
+	UFUNCTION(BlueprintCallable, Category = "Input", meta = (DisplayName = "UserInput"))
+	void TriggerAutoplayToggle();
+
+	UFUNCTION(BlueprintCallable, Category = "Input", meta = (DisplayName = "UserInput"))
+	void TriggerSustainPressed();
+
+	UFUNCTION(BlueprintCallable, Category = "Input", meta = (DisplayName = "UserInput"))
+	void TriggerSustainReleased();
+
+#pragma endregion Input
+
 #pragma region Properties
 	// Properties
 	UPROPERTY(VisibleAnywhere)
@@ -120,11 +177,11 @@ public:
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	// Sets default values for this pawn's properties
-	ABase_Piano_Pawn();
+	APianoPawn();
 
 protected:
 	UPROPERTY(EditAnywhere, Category = "Class Types")
-		TSubclassOf<UUserWidget> WidgetClass;
+	TSubclassOf<UUserWidget> WidgetClass;
 
 	class UW_Piano* PianoWidget;
 
