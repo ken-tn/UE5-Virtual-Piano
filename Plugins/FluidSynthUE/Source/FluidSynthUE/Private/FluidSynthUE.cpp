@@ -22,4 +22,4 @@ void FFluidSynthUEModule::ShutdownModule()
 
 #undef LOCTEXT_NAMESPACE
 
-IMPLEMENT_MODULE(FFluidSynthUEModule, FluidSynth)
+IMPLEMENT_MODULE(FFluidSynthUEModule, FluidSynthUE)
