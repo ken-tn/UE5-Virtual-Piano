@@ -58,6 +58,8 @@ void APianoPawn::Initialize()
 
 	// Broadcast events
 	SoundFontIncrement(0);
+	MidiIncrement(0);
+	GainIncrement(0);
 }
 
 // Sets default values
@@ -212,6 +214,7 @@ void APianoPawn::MidiIncrement(int Increment)
 	{
 		fluid_player_play(fluid_player);
 	}
+	MidiChanged.Broadcast(midiFileName, MidiIndex);
 	UE_LOG(LogTemp, Display, TEXT("Midi track: %s"), *midiFileName);
 }
 

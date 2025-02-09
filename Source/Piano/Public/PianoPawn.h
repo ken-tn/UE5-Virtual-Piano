@@ -161,16 +161,20 @@ public:
 #pragma region Delegates
 	// Delegates
 	UPROPERTY(BlueprintAssignable)
-		FIntDelegate TransposeChanged;
+	FIntDelegate TransposeChanged;
 
 	UPROPERTY(BlueprintAssignable)
-		FFloatDelegate GainChanged;
+	FFloatDelegate GainChanged;
 
 	UPROPERTY(BlueprintAssignable)
-		FStringIntDelegate InstrumentChanged;
+	FStringIntDelegate InstrumentChanged;
 
 	UPROPERTY(BlueprintAssignable)
-		FStringIntDelegate FontChanged;
+	FStringIntDelegate FontChanged;
+
+	UPROPERTY(BlueprintAssignable)
+	FStringIntDelegate MidiChanged;
+
 #pragma endregion Delegates
 
 	/** Property replication */

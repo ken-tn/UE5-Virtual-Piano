@@ -28,4 +28,8 @@ protected:
 	class UTextBlock* InstrumentLabel;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	class UTextBlock* TranspositionLabel;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	class UTextBlock* GainLabel;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	class UTextBlock* MidiLabel;
 };
