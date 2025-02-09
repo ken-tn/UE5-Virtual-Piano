@@ -11,10 +11,10 @@ public class FluidSynthUE : ModuleRules
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PublicIncludePaths.AddRange(
-			new string[] {
+			[
 				// ... add public include paths required here ...
 				Path.Combine(PluginDirectory, "ThirdParty/include")
-			}
+			]
 			);
 
 
@@ -51,20 +51,23 @@ public class FluidSynthUE : ModuleRules
 			);
 
 		PublicAdditionalLibraries.AddRange(
-			new string[]
-			{
-				Path.Combine(PluginDirectory, "ThirdParty/lib", "libfluidsynth.dll.a"),
-				Path.Combine(PluginDirectory, "ThirdParty/lib", "libfluidsynth.a")
-			}
+			[
+				Path.Combine(PluginDirectory, "ThirdParty/lib", "libfluidsynth-3.dll.a"),
+				Path.Combine(PluginDirectory, "ThirdParty/lib", "libfluidsynth-3.a")
+			]
 			);
 
-		PublicDelayLoadDLLs.Add("libfluidsynth-3.dll");
-
-		string dllFolder = Path.Combine(PluginDirectory, "ThirdParty/dll");
-		foreach (string dll in Directory.GetFiles(dllFolder, "*.dll", SearchOption.AllDirectories))
-        {
-			string dllPath = Path.Combine("$(BinaryOutputDir)/", Path.GetFileName(dll));
-			RuntimeDependencies.Add(dllPath, dll);
+		string DLLDirectory = Path.Combine(PluginDirectory, "ThirdParty/bin");
+		foreach (string DLLName in Directory.GetFiles(DLLDirectory, "*.dll", SearchOption.AllDirectories))
+		{
+            // Copy DLLs to same output directory as the executable at build time
+            string runtimeDLLPath = Path.Combine("$(TargetOutputDir)/", Path.GetFileName(DLLName));
+			RuntimeDependencies.Add(runtimeDLLPath, DLLName);
 		}
+
+		// note: PublicDelayLoadDLLs accepts only filename, add directory with PublicIncludePaths.Add
+		// libfluidsynth-3.dll has ThirdParty/bin dll dependencies
+		PublicDelayLoadDLLs.Add("libfluidsynth-3.dll");
+	   
 	}
 }

@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "{B1740FAA-4E60-0C78-9E7B-D8A9D4D41FAA}",
+	"EngineAssociation": "{2189B77C-4059-8E10-51EB-7184628F5E78}",
 	"Category": "",
 	"Description": "",
 	"Modules": [
@@ -35,16 +35,11 @@
 		},
 		{
 			"Name": "Bridge",
-			"Enabled": true,
-			"SupportedTargetPlatforms": [
-				"Win64",
-				"Mac",
-				"Linux"
-			]
+			"Enabled": true
 		},
 		{
 			"Name": "FluidSynthUE",
-			"Enabled": false
+			"Enabled": true
 		}
 	]
 }

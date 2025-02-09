@@ -55,7 +55,7 @@ void ABase_Piano_Pawn::Initialize()
 // Sets default values
 ABase_Piano_Pawn::ABase_Piano_Pawn()
 {
- 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	FFileManagerGeneric::Get().FindFiles(Fonts, *FPaths::ProjectContentDir().Append("SoundFont/"));
@@ -68,18 +68,6 @@ ABase_Piano_Pawn::ABase_Piano_Pawn()
 	}
 
 	CurrentNote = 1;
-}
-
-void ABase_Piano_Pawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
-{
-	fluid_player_stop(fluid_player);
-	fluid_synth_all_notes_off(vpsynth, 0);
-	fluid_synth_all_notes_off(midisynth, 0);
-	fluid_synth_all_sounds_off(vpsynth, 0);
-	fluid_synth_all_sounds_off(midisynth, 0);
-	UE_LOG(LogTemp, Display, TEXT("%s"), (mididriver != NULL) ? *FString("true") : *FString("false"));
-	//delete_fluid_audio_driver(vpdriver);
-	//delete_fluid_audio_driver(mididriver);
 }
 
 #pragma endregion Instantiate
@@ -174,7 +162,7 @@ int ABase_Piano_Pawn::LoadSoundfont(int fontIndex)
 	//UE_LOG(LogTemp, Display, TEXT("LOADED %s AS FONTID %d"), *fontFileName, font);
 	if (font == FLUID_FAILED || font2 == FLUID_FAILED)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Loading the SoundFont '%s' failed!"), FontPath);
+		UE_LOG(LogTemp, Error, TEXT("Loading the SoundFont '%hs' failed!"), FontPath);
 		return FLUID_FAILED;
 	}
 
@@ -431,6 +419,21 @@ void ABase_Piano_Pawn::BeginPlay()
 {
 	Super::BeginPlay();
 
+}
+
+// Called when game ends or destroyed
+void ABase_Piano_Pawn::EndPlay(EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+
+	fluid_player_stop(fluid_player);
+	fluid_synth_all_notes_off(vpsynth, 0);
+	fluid_synth_all_notes_off(midisynth, 0);
+	fluid_synth_all_sounds_off(vpsynth, 0);
+	fluid_synth_all_sounds_off(midisynth, 0);
+	UE_LOG(LogTemp, Display, TEXT("%s"), (mididriver != NULL) ? *FString("true") : *FString("false"));
+	//delete_fluid_audio_driver(vpdriver);
+	//delete_fluid_audio_driver(mididriver);
 }
 
 // Called every frame
