@@ -10,35 +10,9 @@ public class Piano : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "FluidSynthUE" });
+		PublicDependencyModuleNames.AddRange(["Core", "CoreUObject", "Engine", "InputCore", "FluidSynthUE"]);
 
-		PrivateDependencyModuleNames.AddRange(new string[] {  });
-
-        // Project directory -> Path.Combine(ModuleDirectory, "../../").
-        PublicIncludePaths.AddRange(
-		[
-			// ... add public include paths required here ...
-			Path.Combine(ModuleDirectory, "../../", "Plugins/FluidSynthUE/ThirdParty/bin")
-		]
-		);
-
-        // FluidSynthUE Plugin DLL dependencies
-        // libfluidsynth - 3.dll has ThirdParty/ bin dll dependencies
-        // DLLs are packaged into Binaries\Win64
-        string DLLDirectory = Path.Combine(ModuleDirectory, "../../", "Plugins/FluidSynthUE/ThirdParty/bin");
-		if (!Directory.Exists(DLLDirectory))
-		{
-			Console.WriteLine("FluidSynth DLL directory not found! Searched at " + DLLDirectory);
-		}
-		else
-		{
-			foreach (string DLLName in Directory.GetFiles(DLLDirectory, "*.dll", SearchOption.AllDirectories))
-			{
-				string runtimeDLLPath = Path.Combine("$(TargetOutputDir)/", Path.GetFileName(DLLName));
-                Console.WriteLine("Runtime DLLPath: " + runtimeDLLPath);
-                RuntimeDependencies.Add(runtimeDLLPath, DLLName);
-			}
-		}
+		PrivateDependencyModuleNames.AddRange([]);
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
