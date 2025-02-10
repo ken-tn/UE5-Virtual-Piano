@@ -19,6 +19,10 @@ public:
 	class UButton* ExampleButton;
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<UUserWidget> WBP_PianoKeyLayout;
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<UUserWidget> WBP_PianoKey;
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<UUserWidget> WBP_BPianoKey;
 
 private:
 	virtual void NativeConstruct() override;

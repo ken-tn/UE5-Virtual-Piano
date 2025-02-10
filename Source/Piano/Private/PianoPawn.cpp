@@ -5,8 +5,10 @@
 #include "fluidsynth.h"
 #include "HAL/FileManagerGeneric.h"
 #include "W_Piano.h"
+#include "W_PianoKey.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/GridPanel.h"
+#include "Components/TextBlock.h"
 #include "Blueprint/UserWidget.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/PlayerController.h"
@@ -28,6 +30,16 @@ void APianoPawn::Initialize()
 	{
 		// Construct keyboard layout widget
 		UUserWidget* KeysWidget = PianoWidget->WidgetTree->ConstructWidget<UUserWidget>(PianoWidget->WBP_PianoKeyLayout, TEXT("KeysLayout"));
+		UPanelWidget* WhiteKeys = Cast<UPanelWidget>(KeysWidget->GetWidgetFromName(FName("HorizontalBox_White")));
+		int idx = 0;
+		for (UWidget* Key : WhiteKeys->GetAllChildren())
+		{
+			UW_PianoKey* WKey = Cast<UW_PianoKey>(Key);
+			UTextBlock* TextBlock = Cast<UTextBlock>(WKey->GetWidgetFromName("KeyTextBlock"));
+			FString Mapping = "1234567890qwertyuiopasdfghjklzxcvbnm";
+			TextBlock->SetText(FText::FromString(FString(1, &Mapping[idx])));
+			idx++;
+		}
 		UGridPanel* KeysPanel = PianoWidget->WidgetTree->FindWidget<UGridPanel>(FName("KeysPanel"));
 		if (KeysPanel)
 		{
