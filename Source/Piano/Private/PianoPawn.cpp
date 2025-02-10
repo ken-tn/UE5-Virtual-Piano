@@ -9,6 +9,7 @@
 #include "Blueprint/WidgetTree.h"
 #include "Components/GridPanel.h"
 #include "Components/TextBlock.h"
+#include "Components/Button.h"
 #include "Blueprint/UserWidget.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/PlayerController.h"
@@ -32,6 +33,7 @@ void APianoPawn::Initialize()
 		UUserWidget* KeysWidget = PianoWidget->WidgetTree->ConstructWidget<UUserWidget>(PianoWidget->WBP_PianoKeyLayout, TEXT("KeysLayout"));
 
 		// Grab from WhiteKeys and BlackKeys to create UWPianoKeys
+		UWPianoKeys.Empty();
 		UPanelWidget* WhiteKeys = Cast<UPanelWidget>(KeysWidget->GetWidgetFromName(FName("HorizontalBox_White")));
 		UPanelWidget* BlackKeys = Cast<UPanelWidget>(KeysWidget->GetWidgetFromName(FName("HorizontalBox_Black")));
 
@@ -402,6 +404,13 @@ void APianoPawn::OnKeyDown(FKey Key)
 
 	// Play note
 	// Client-specific functionality
+	if (note - 36 >= 0 && note - 36 < 62)
+	{
+		// Highlight key in UI
+		UW_PianoKey* UIKey = UWPianoKeys[note - 36];
+		UIKey->PlayAnimation(UIKey->Anim_OnPressed);
+	}
+	
 	SetCurrentNote(note);
 }
 
@@ -420,11 +429,46 @@ void APianoPawn::OnKeyUp(FKey Key)
 	const FString KeyName = *Key.GetDisplayName().ToString().ToLower();
 
 	int note = LetterToNote(KeyName);
-	if (note == -1 || !Sustain)
+	if (note == -1)
 	{
 		return;
 	}
 
+	UW_PianoKey* UIKey;
+	if (note - 36 >= 0 && note - 36 < 62)
+	{
+		UIKey = UWPianoKeys[note - 36];
+		// Disable key highlight in UI
+		if ((UIKey->Button->GetBackgroundColor().R > 0 && UIKey->Button->GetBackgroundColor().R < 1))
+		{
+			UIKey->PlayAnimation(UIKey->Anim_OnReleased);
+		}
+	}
+
+	// Hack: Check the two surrounding keys to account for shift/ctrl offset
+	if (note - 35 >= 0 && note - 35 < 62)
+	{
+		UIKey = UWPianoKeys[note - 35];
+		if ((UIKey->Button->GetBackgroundColor().R > 0 && UIKey->Button->GetBackgroundColor().R < 1))
+		{
+			UIKey->PlayAnimation(UIKey->Anim_OnReleased);
+		}
+	}
+
+	if (note - 37 >= 0 && note - 37 < 62)
+	{
+		UIKey = UWPianoKeys[note - 37];
+		if ((UIKey->Button->GetBackgroundColor().R > 0 && UIKey->Button->GetBackgroundColor().R < 1))
+		{
+			UIKey->PlayAnimation(UIKey->Anim_OnReleased);
+		}
+	}
+
+	if (!Sustain)
+	{
+		return;
+	}
+	
 	// Release note
 	fluid_synth_noteoff(vpsynth, 0, note);
 }
