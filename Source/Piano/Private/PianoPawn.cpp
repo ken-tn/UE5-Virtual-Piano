@@ -404,7 +404,7 @@ void APianoPawn::OnKeyDown(FKey Key)
 
 	// Play note
 	// Client-specific functionality
-	if (note - 36 >= 0 && note - 36 < 62)
+	if (note - 36 >= 0 && note - 36 < 61)
 	{
 		// Highlight key in UI
 		UW_PianoKey* UIKey = UWPianoKeys[note - 36];
@@ -434,31 +434,32 @@ void APianoPawn::OnKeyUp(FKey Key)
 		return;
 	}
 
+	// Disable key highlight in UI
 	UW_PianoKey* UIKey;
-	if (note - 36 >= 0 && note - 36 < 62)
+	if (note - 36 >= 0 && note - 36 < 61)
 	{
 		UIKey = UWPianoKeys[note - 36];
-		// Disable key highlight in UI
-		if ((UIKey->Button->GetBackgroundColor().R > 0 && UIKey->Button->GetBackgroundColor().R < 1))
+		// Check for highlighted key and not releasing already
+		if ((UIKey->Button->GetBackgroundColor().R > 0 && UIKey->Button->GetBackgroundColor().R < 1) && !UIKey->IsAnimationPlaying(UIKey->Anim_OnReleased))
 		{
 			UIKey->PlayAnimation(UIKey->Anim_OnReleased);
 		}
 	}
 
 	// Hack: Check the two surrounding keys to account for shift/ctrl offset
-	if (note - 35 >= 0 && note - 35 < 62)
+	if (note - 35 >= 0 && note - 35 < 61)
 	{
 		UIKey = UWPianoKeys[note - 35];
-		if ((UIKey->Button->GetBackgroundColor().R > 0 && UIKey->Button->GetBackgroundColor().R < 1))
+		if ((UIKey->Button->GetBackgroundColor().R > 0 && UIKey->Button->GetBackgroundColor().R < 1) && !UIKey->IsAnimationPlaying(UIKey->Anim_OnReleased))
 		{
 			UIKey->PlayAnimation(UIKey->Anim_OnReleased);
 		}
 	}
 
-	if (note - 37 >= 0 && note - 37 < 62)
+	if (note - 37 >= 0 && note - 37 < 61)
 	{
 		UIKey = UWPianoKeys[note - 37];
-		if ((UIKey->Button->GetBackgroundColor().R > 0 && UIKey->Button->GetBackgroundColor().R < 1))
+		if ((UIKey->Button->GetBackgroundColor().R > 0 && UIKey->Button->GetBackgroundColor().R < 1) && !UIKey->IsAnimationPlaying(UIKey->Anim_OnReleased))
 		{
 			UIKey->PlayAnimation(UIKey->Anim_OnReleased);
 		}
