@@ -7,7 +7,7 @@
 #include "W_Piano.generated.h"
 
 /**
- * 
+ * Widget definition for the PianoPawn class. Create a derived blueprint widget to use.
  */
 UCLASS()
 class PIANO_API UW_Piano : public UUserWidget
@@ -17,6 +17,12 @@ class PIANO_API UW_Piano : public UUserWidget
 public:
 	UPROPERTY()
 	class UButton* ExampleButton;
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<UUserWidget> WBP_PianoKeyLayout;
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<UUserWidget> WBP_PianoKey;
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<UUserWidget> WBP_BPianoKey;
 
 private:
 	virtual void NativeConstruct() override;
@@ -32,4 +38,6 @@ protected:
 	class UTextBlock* GainLabel;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	class UTextBlock* MidiLabel;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	class UGridPanel* KeysPanel;
 };

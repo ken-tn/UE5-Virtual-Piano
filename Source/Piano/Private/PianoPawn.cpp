@@ -5,6 +5,11 @@
 #include "fluidsynth.h"
 #include "HAL/FileManagerGeneric.h"
 #include "W_Piano.h"
+#include "W_PianoKey.h"
+#include "Blueprint/WidgetTree.h"
+#include "Components/GridPanel.h"
+#include "Components/TextBlock.h"
+#include "Components/Button.h"
 #include "Blueprint/UserWidget.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/PlayerController.h"
@@ -16,7 +21,7 @@ void APianoPawn::Initialize()
 	// Something went horribly wrong, but this prevents a full crash.
 	if (this == nullptr)
 	{
-		UE_LOG(LogTemp, Error, TEXT("WidgetClass not found"));
+		UE_LOG(LogTemp, Error, TEXT("APianoPawn::Initialize failed"));
 		return;
 	}
 
@@ -24,6 +29,63 @@ void APianoPawn::Initialize()
 	PianoWidget = CreateWidget<UW_Piano>(Cast<APlayerController>(GetController()), WidgetClass);
 	if (PianoWidget != nullptr)
 	{
+		// Construct keyboard layout widget
+		UUserWidget* KeysWidget = PianoWidget->WidgetTree->ConstructWidget<UUserWidget>(PianoWidget->WBP_PianoKeyLayout, TEXT("KeysLayout"));
+
+		// Grab from WhiteKeys and BlackKeys to create UWPianoKeys
+		UWPianoKeys.Empty();
+		UPanelWidget* WhiteKeys = Cast<UPanelWidget>(KeysWidget->GetWidgetFromName(FName("HorizontalBox_White")));
+		UPanelWidget* BlackKeys = Cast<UPanelWidget>(KeysWidget->GetWidgetFromName(FName("HorizontalBox_Black")));
+
+		TArray<UWidget*> WhiteKeyArray = WhiteKeys->GetAllChildren();
+		TArray<UWidget*> BlackKeyArray = BlackKeys->GetAllChildren();
+
+		// We need a way to associate each note in `letterNoteMap` with its corresponding key widget (white or black)
+		int32 WhiteKeyIndex = 0;
+		int32 BlackKeyIndex = 0;
+
+		for (FString::ElementType note : letterNoteMap)
+		{
+			// Check if the note is uppercase (sharp) or lowercase (natural)
+			bool bIsSharp = FChar::IsUpper(note) || FChar::IsPunct(note); // Uppercase means sharp, lowercase means natural
+			// UE_LOG(LogTemp, Display, TEXT("%s %d"), &note, bIsSharp);
+
+			if (bIsSharp)
+			{
+				// If the note is sharp, grab a black key
+				if (BlackKeyIndex < BlackKeyArray.Num())
+				{
+					UWPianoKeys.Add(Cast<UW_PianoKey>(BlackKeyArray[BlackKeyIndex]));
+					BlackKeyIndex++;
+				}
+			}
+			else
+			{
+				// If the note is natural (lowercase), grab a white key
+				if (WhiteKeyIndex < WhiteKeyArray.Num())
+				{
+					UWPianoKeys.Add(Cast<UW_PianoKey>(WhiteKeyArray[WhiteKeyIndex]));
+					WhiteKeyIndex++;
+				}
+			}
+		}
+
+		// Set the text for each UW_PianoKey to the respective character
+		int idx = 0;
+		for (UW_PianoKey* Key : UWPianoKeys)
+		{
+			UTextBlock* TextBlock = Cast<UTextBlock>(Key->GetWidgetFromName("KeyTextBlock"));
+			TextBlock->SetText(FText::FromString(FString(1, &letterNoteMap[idx])));
+			idx++;
+		}
+
+		// Add the keyboard layout to the PianoWidget UI
+		UGridPanel* KeysPanel = PianoWidget->WidgetTree->FindWidget<UGridPanel>(FName("KeysPanel"));
+		if (KeysPanel)
+		{
+			KeysPanel->AddChildToGrid(KeysWidget, 0, 0);
+		}
+		
 		PianoWidget->AddToViewport();
 	}
 
@@ -85,16 +147,16 @@ APianoPawn::APianoPawn()
 #pragma region Functionality
 void APianoPawn::ToggleAuto()
 {
-	if (fluid_player_playing)
+	// [Ready, Playing, Stopping (unused), Done]
+	int fluidStatus = fluid_player_get_status(fluid_player);
+	if (fluidStatus == FLUID_PLAYER_PLAYING)
 	{
 		fluid_player_stop(fluid_player);
 	}
-	else
+	else if (fluidStatus == FLUID_PLAYER_READY)
 	{
 		fluid_player_play(fluid_player);
 	}
-
-	fluid_player_playing = !fluid_player_playing;
 }
 
 void APianoPawn::TransposeIncrement(int Increment)
@@ -205,12 +267,16 @@ void APianoPawn::MidiIncrement(int Increment)
 		return;
 	}
 
+	int wasAutoPlaying = fluid_player_get_status(fluid_player) == FLUID_PLAYER_PLAYING;
 	delete_fluid_player(fluid_player);
+
 	// Create auto player
 	const FString midiFileName = Midis[MidiIndex];
 	fluid_player = new_fluid_player(midisynth);
 	fluid_player_add(fluid_player, TCHAR_TO_ANSI(*FPaths::ProjectContentDir().Append("Midi/" + midiFileName)));
-	if (fluid_player_playing)
+
+	// Automatically play if autoplay was already on
+	if (wasAutoPlaying)
 	{
 		fluid_player_play(fluid_player);
 	}
@@ -338,6 +404,13 @@ void APianoPawn::OnKeyDown(FKey Key)
 
 	// Play note
 	// Client-specific functionality
+	if (note - 36 >= 0 && note - 36 < 61)
+	{
+		// Highlight key in UI
+		UW_PianoKey* UIKey = UWPianoKeys[note - 36];
+		UIKey->PlayAnimation(UIKey->Anim_OnPressed);
+	}
+	
 	SetCurrentNote(note);
 }
 
@@ -356,11 +429,47 @@ void APianoPawn::OnKeyUp(FKey Key)
 	const FString KeyName = *Key.GetDisplayName().ToString().ToLower();
 
 	int note = LetterToNote(KeyName);
-	if (note == -1 || !Sustain)
+	if (note == -1)
 	{
 		return;
 	}
 
+	// Disable key highlight in UI
+	UW_PianoKey* UIKey;
+	if (note - 36 >= 0 && note - 36 < 61)
+	{
+		UIKey = UWPianoKeys[note - 36];
+		// Check for highlighted key and not releasing already
+		if ((UIKey->Button->GetBackgroundColor().R > 0 && UIKey->Button->GetBackgroundColor().R < 1) && !UIKey->IsAnimationPlaying(UIKey->Anim_OnReleased))
+		{
+			UIKey->PlayAnimation(UIKey->Anim_OnReleased);
+		}
+	}
+
+	// Hack: Check the two surrounding keys to account for shift/ctrl offset
+	if (note - 35 >= 0 && note - 35 < 61)
+	{
+		UIKey = UWPianoKeys[note - 35];
+		if ((UIKey->Button->GetBackgroundColor().R > 0 && UIKey->Button->GetBackgroundColor().R < 1) && !UIKey->IsAnimationPlaying(UIKey->Anim_OnReleased))
+		{
+			UIKey->PlayAnimation(UIKey->Anim_OnReleased);
+		}
+	}
+
+	if (note - 37 >= 0 && note - 37 < 61)
+	{
+		UIKey = UWPianoKeys[note - 37];
+		if ((UIKey->Button->GetBackgroundColor().R > 0 && UIKey->Button->GetBackgroundColor().R < 1) && !UIKey->IsAnimationPlaying(UIKey->Anim_OnReleased))
+		{
+			UIKey->PlayAnimation(UIKey->Anim_OnReleased);
+		}
+	}
+
+	if (!Sustain)
+	{
+		return;
+	}
+	
 	// Release note
 	fluid_synth_noteoff(vpsynth, 0, note);
 }
