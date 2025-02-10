@@ -30,16 +30,54 @@ void APianoPawn::Initialize()
 	{
 		// Construct keyboard layout widget
 		UUserWidget* KeysWidget = PianoWidget->WidgetTree->ConstructWidget<UUserWidget>(PianoWidget->WBP_PianoKeyLayout, TEXT("KeysLayout"));
+
+		// Grab from WhiteKeys and BlackKeys to create UWPianoKeys
 		UPanelWidget* WhiteKeys = Cast<UPanelWidget>(KeysWidget->GetWidgetFromName(FName("HorizontalBox_White")));
-		int idx = 0;
-		for (UWidget* Key : WhiteKeys->GetAllChildren())
+		UPanelWidget* BlackKeys = Cast<UPanelWidget>(KeysWidget->GetWidgetFromName(FName("HorizontalBox_Black")));
+
+		TArray<UWidget*> WhiteKeyArray = WhiteKeys->GetAllChildren();
+		TArray<UWidget*> BlackKeyArray = BlackKeys->GetAllChildren();
+
+		// We need a way to associate each note in `letterNoteMap` with its corresponding key widget (white or black)
+		int32 WhiteKeyIndex = 0;
+		int32 BlackKeyIndex = 0;
+
+		for (FString::ElementType note : letterNoteMap)
 		{
-			UW_PianoKey* WKey = Cast<UW_PianoKey>(Key);
-			UTextBlock* TextBlock = Cast<UTextBlock>(WKey->GetWidgetFromName("KeyTextBlock"));
-			FString Mapping = "1234567890qwertyuiopasdfghjklzxcvbnm";
-			TextBlock->SetText(FText::FromString(FString(1, &Mapping[idx])));
+			// Check if the note is uppercase (sharp) or lowercase (natural)
+			bool bIsSharp = FChar::IsUpper(note) || FChar::IsPunct(note); // Uppercase means sharp, lowercase means natural
+			// UE_LOG(LogTemp, Display, TEXT("%s %d"), &note, bIsSharp);
+
+			if (bIsSharp)
+			{
+				// If the note is sharp, grab a black key
+				if (BlackKeyIndex < BlackKeyArray.Num())
+				{
+					UWPianoKeys.Add(Cast<UW_PianoKey>(BlackKeyArray[BlackKeyIndex]));
+					BlackKeyIndex++;
+				}
+			}
+			else
+			{
+				// If the note is natural (lowercase), grab a white key
+				if (WhiteKeyIndex < WhiteKeyArray.Num())
+				{
+					UWPianoKeys.Add(Cast<UW_PianoKey>(WhiteKeyArray[WhiteKeyIndex]));
+					WhiteKeyIndex++;
+				}
+			}
+		}
+
+		// Set the text for each UW_PianoKey to the respective character
+		int idx = 0;
+		for (UW_PianoKey* Key : UWPianoKeys)
+		{
+			UTextBlock* TextBlock = Cast<UTextBlock>(Key->GetWidgetFromName("KeyTextBlock"));
+			TextBlock->SetText(FText::FromString(FString(1, &letterNoteMap[idx])));
 			idx++;
 		}
+
+		// Add the keyboard layout to the PianoWidget UI
 		UGridPanel* KeysPanel = PianoWidget->WidgetTree->FindWidget<UGridPanel>(FName("KeysPanel"));
 		if (KeysPanel)
 		{

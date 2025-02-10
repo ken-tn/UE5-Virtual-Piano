@@ -10,6 +10,7 @@
 #include "InputMappingContext.h"
 #include "InputActionsConfig.h"
 #include <fluidsynth.h>
+#include "W_PianoKey.h"
 #include "PianoPawn.generated.h"
 
 // Declare delegate types
@@ -24,6 +25,7 @@ class PIANO_API APianoPawn : public APawn
 
 private:
 #pragma region Properties
+	TArray<UW_PianoKey*> UWPianoKeys;
 	const FString letterNoteMap = "1!2@34$5%6^78*9(0qQwWeErtTyYuiIoOpPasSdDfgGhHjJklLzZxcCvVbBnm";
 	fluid_synth_t* vpsynth;
 	fluid_synth_t* midisynth;
