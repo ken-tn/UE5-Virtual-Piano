@@ -7,7 +7,7 @@
 #include "W_Piano.generated.h"
 
 /**
- * 
+ * Widget definition for the PianoPawn class. Create a derived blueprint widget to use.
  */
 UCLASS()
 class PIANO_API UW_Piano : public UUserWidget

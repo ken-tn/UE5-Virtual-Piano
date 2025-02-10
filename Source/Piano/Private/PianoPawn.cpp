@@ -16,7 +16,7 @@ void APianoPawn::Initialize()
 	// Something went horribly wrong, but this prevents a full crash.
 	if (this == nullptr)
 	{
-		UE_LOG(LogTemp, Error, TEXT("WidgetClass not found"));
+		UE_LOG(LogTemp, Error, TEXT("APianoPawn::Initialize failed"));
 		return;
 	}
 
@@ -85,16 +85,16 @@ APianoPawn::APianoPawn()
 #pragma region Functionality
 void APianoPawn::ToggleAuto()
 {
-	if (fluid_player_playing)
+	// [Ready, Playing, Stopping (unused), Done]
+	int fluidStatus = fluid_player_get_status(fluid_player);
+	if (fluidStatus == FLUID_PLAYER_PLAYING)
 	{
 		fluid_player_stop(fluid_player);
 	}
-	else
+	else if (fluidStatus == FLUID_PLAYER_READY)
 	{
 		fluid_player_play(fluid_player);
 	}
-
-	fluid_player_playing = !fluid_player_playing;
 }
 
 void APianoPawn::TransposeIncrement(int Increment)
@@ -205,12 +205,16 @@ void APianoPawn::MidiIncrement(int Increment)
 		return;
 	}
 
+	int wasAutoPlaying = fluid_player_get_status(fluid_player) == FLUID_PLAYER_PLAYING;
 	delete_fluid_player(fluid_player);
+
 	// Create auto player
 	const FString midiFileName = Midis[MidiIndex];
 	fluid_player = new_fluid_player(midisynth);
 	fluid_player_add(fluid_player, TCHAR_TO_ANSI(*FPaths::ProjectContentDir().Append("Midi/" + midiFileName)));
-	if (fluid_player_playing)
+
+	// Automatically play if autoplay was already on
+	if (wasAutoPlaying)
 	{
 		fluid_player_play(fluid_player);
 	}

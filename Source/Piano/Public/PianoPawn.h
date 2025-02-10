@@ -33,7 +33,6 @@ private:
 	int FontID = 1;
 	int FontIndex = 0;
 	int MidiIndex = 0;
-	bool fluid_player_playing = false;
 
 	// Channel: Program
 	int CurrentProgram[100] = { 0 };
