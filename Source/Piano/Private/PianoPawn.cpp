@@ -5,6 +5,8 @@
 #include "fluidsynth.h"
 #include "HAL/FileManagerGeneric.h"
 #include "W_Piano.h"
+#include "Blueprint/WidgetTree.h"
+#include "Components/GridPanel.h"
 #include "Blueprint/UserWidget.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/PlayerController.h"
@@ -24,6 +26,14 @@ void APianoPawn::Initialize()
 	PianoWidget = CreateWidget<UW_Piano>(Cast<APlayerController>(GetController()), WidgetClass);
 	if (PianoWidget != nullptr)
 	{
+		// Construct keyboard layout widget
+		UUserWidget* KeysWidget = PianoWidget->WidgetTree->ConstructWidget<UUserWidget>(PianoWidget->WBP_PianoKeyLayout, TEXT("KeysLayout"));
+		UGridPanel* KeysPanel = PianoWidget->WidgetTree->FindWidget<UGridPanel>(FName("KeysPanel"));
+		if (KeysPanel)
+		{
+			KeysPanel->AddChildToGrid(KeysWidget, 0, 0);
+		}
+		
 		PianoWidget->AddToViewport();
 	}
 

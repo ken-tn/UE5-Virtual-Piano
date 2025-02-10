@@ -17,6 +17,8 @@ class PIANO_API UW_Piano : public UUserWidget
 public:
 	UPROPERTY()
 	class UButton* ExampleButton;
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<UUserWidget> WBP_PianoKeyLayout;
 
 private:
 	virtual void NativeConstruct() override;
@@ -32,4 +34,6 @@ protected:
 	class UTextBlock* GainLabel;
 	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
 	class UTextBlock* MidiLabel;
+	UPROPERTY(BlueprintReadWrite, meta = (BindWidget))
+	class UGridPanel* KeysPanel;
 };

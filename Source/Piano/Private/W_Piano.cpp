@@ -7,7 +7,7 @@
 
 void UW_Piano::NativeConstruct()
 {
-    Super::NativeConstruct();
+	Super::NativeConstruct();
 
-    // Bind delegates here.
+	// Bind delegates here.
 }
